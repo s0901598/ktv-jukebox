@@ -48,7 +48,7 @@
   <script type="module">
     import { subscribe, addSong, parseYouTubeId, fetchTitle, escapeHtml } from "./js/party.js";
     import { searchSongs, youtubeSearchUrl, QuotaExceededError } from "./js/youtube.js";
-    import { searchLibrary, collect } from "./js/library.js";
+    import { searchLibrary, collect, displayTitle, guessArtist } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
@@ -93,10 +93,11 @@
       <li>
         <img src="https://i.ytimg.com/vi/${encodeURIComponent(s.videoId)}/mqdefault.jpg" alt="" loading="lazy">
         <div class="info">
-          <div class="title">${escapeHtml(s.artist && s.song ? `${s.song} - ${s.artist}` : s.title)}</div>
+          <div class="title">${escapeHtml(s.song || s.title)}</div>
+          ${s.artist ? `<div class="singer">🎙 ${escapeHtml(s.artist)} 演唱</div>` : ""}
           <div class="by">
-            ${s.fromLibrary ? `<span class="badge lib">⭐ 歌庫</span>` : ""}${s.karaoke ? `<span class="badge">🎤 伴唱版</span>` : ""}
-            ${s.duration ? escapeHtml(s.duration) : ""}${s.lang ? " · " + escapeHtml(s.lang) : ""}${!s.fromLibrary && s.channel ? " · " + escapeHtml(s.channel) : ""}
+            ${s.fromLibrary ? `<span class="badge lib">⭐ 歌庫</span>` : ""}${s.duet ? `<span class="badge duet">👫 對唱</span>` : ""}${s.karaoke ? `<span class="badge">🎤 伴唱版</span>` : ""}
+            ${[s.duration, s.lang, !s.artist && s.channel ? `頻道:${s.channel}` : ""].filter(Boolean).map(escapeHtml).join(" · ")}
           </div>
         </div>
         <button class="pick" data-i="${i}">點歌</button>
@@ -112,7 +113,9 @@
       $("yt-more").hidden = true;
       try {
         const known = new Set(results.map((s) => s.videoId));
-        results = [...results, ...(await searchSongs(q)).filter((s) => !known.has(s.videoId))];
+        const found = (await searchSongs(q)).filter((s) => !known.has(s.videoId));
+        for (const s of found) s.artist = await guessArtist(s.title);
+        results = [...results, ...found];
         render();
         msg.textContent = results.length ? "" : "找不到相關的歌,換個關鍵字試試";
       } catch (err) {
@@ -148,7 +151,7 @@
       btn.disabled = true;
       btn.textContent = "…";
       try {
-        await addSong(code, { videoId: s.videoId, title: s.artist && s.song ? `${s.song} - ${s.artist}` : s.title, by: name });
+        await addSong(code, { videoId: s.videoId, title: displayTitle(s), by: name });
         collect(s);
         btn.textContent = "已點 ✓";
         btn.classList.add("done");

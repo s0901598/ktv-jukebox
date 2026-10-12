@@ -30,10 +30,25 @@ export async function searchLibrary(query) {
   const songs = await loadLibrary();
   return songs
     .filter((s) => {
-      const hay = fold(`${s.artist || ""}${s.song || ""}${s.title}`);
+      const hay = fold(`${s.artist || ""}${s.song || ""}${s.title}${s.duet ? "對唱合唱" : ""}`);
       return terms.every((t) => hay.includes(t));
     })
     .map((s) => ({ ...s, fromLibrary: true }));
+}
+
+// 清單上顯示的歌名:「歌名(歌手)」,讓大家知道是哪個版本
+export const displayTitle = (s) => (s.song && s.artist ? `${s.song}（${s.artist}）` : s.title);
+
+// YouTube 搜尋結果沒有歌手欄位,用歌庫裡認識的歌手名字去標題裡找
+export async function guessArtist(title) {
+  const names = new Set();
+  for (const s of await loadLibrary()) {
+    for (const n of (s.artist || "").split("、")) if (n.length >= 2) names.add(n);
+  }
+  const flat = fold(title);
+  const found = [...names].filter((n) => flat.includes(fold(n)));
+  // 去掉被更長名字包含的(例如同時找到「伍佰」和「伍佰、萬芳」中的名字)
+  return found.filter((n) => !found.some((m) => m !== n && m.includes(n))).join("、");
 }
 
 // 點歌時自動收進歌庫(同一支影片只存一次)
@@ -41,6 +56,10 @@ export function collect(song) {
   const entry = {
     videoId: song.videoId,
     title: song.title,
+    ...(song.song ? { song: song.song } : {}),
+    ...(song.artist ? { artist: song.artist } : {}),
+    ...(song.lang ? { lang: song.lang } : {}),
+    ...(song.duet ? { duet: true } : {}),
     channel: song.channel || "",
     duration: song.duration || "",
     karaoke: isKaraoke(song.title),

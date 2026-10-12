@@ -236,3 +236,5 @@ body.screen-body {
 .badge.lib { background: #7ee3ff; color: #00222c; }
 
 [hidden] { display: none !important; }
+.badge.duet { background: #ffb3d1; color: #3a0019; }
+.song-list .singer { color: var(--accent-2); font-size: 16px; margin-top: 3px; }

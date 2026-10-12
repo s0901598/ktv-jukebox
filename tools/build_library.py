@@ -1,7 +1,7 @@
 """幫歌單裡每首歌找 YouTube 伴唱版,合併進 data/library.json。
 
 用法: python3 tools/build_library.py tools/songs-batch1.txt
-歌單格式: 一行一首「語言|歌手|歌名」。已經在歌庫裡的歌會跳過,不重複扣額度。
+歌單格式: 一行一首「語言|歌手|歌名」,對唱歌的歌手用「、」分開(會自動標成對唱)。已經在歌庫裡的歌會跳過,不重複扣額度。
 每首歌扣約 101 點 YouTube 額度(搜尋 100 + 查長度 1),每天 10,000 點。
 """
 import json
@@ -46,19 +46,30 @@ def unescape(s):
     return html.unescape(s)
 
 
+SIMPLIFIED = str.maketrans("爱里干梦见别温伤说乐风听难过双恋泪后来长这时为们么飞凤邓丽叶陈张刘黄伦杰间顶欢喜宝贝灯红线乡愿乐无爱情幹拼誰妳", "愛裡乾夢見別溫傷說樂風聽難過雙戀淚後來長這時為們麼飛鳳鄧麗葉陳張劉黃倫傑間頂歡喜寶貝燈紅線鄉願樂無愛情干拚啥你")
+
+
+def exact_song(song, flat):
+    return song in flat or song.translate(SIMPLIFIED) in flat.translate(SIMPLIFIED)
+
+
 def score(item, artist, song, rank):
     title = item["title"]
     flat = re.sub(r"\s+", "", title)
     sc = 0.0
-    # 歌名每個字都出現在標題裡(容忍繁簡差異造成的少數不符)
-    hit = sum(ch in flat for ch in song) / len(song)
-    sc += 3 * hit if hit >= 0.7 else -4
+    # 標題裡要有完整歌名(繁簡都算),只有零散的字對上不算
+    if exact_song(song, flat):
+        sc += 4
+    else:
+        sc -= 6
     if KARAOKE.search(title):
         sc += 3
     if any(a in flat for a in re.split(r"[、,&]", artist)):
         sc += 1
     if BAD.search(title):
         sc -= 2
+    if not KARAOKE.search(title):
+        sc -= 1
     if not 120 <= item["sec"] <= 480:
         sc -= 5
     return sc - rank * 0.15
@@ -76,10 +87,13 @@ def find(lang, artist, song):
     for i in items:
         i["sec"] = durs.get(i["videoId"], 0)
     best = max(enumerate(items), key=lambda p: score(p[1], artist, song, p[0]))[1]
+    if not exact_song(song, re.sub(r"\s+", "", best["title"])):
+        return None  # 沒有標題含完整歌名的影片,寧可不收也不要收錯歌
     return {
         "lang": lang, "artist": artist, "song": song,
         "videoId": best["videoId"], "title": best["title"], "channel": best["channel"],
         "duration": fmt(best["sec"]), "karaoke": bool(KARAOKE.search(best["title"])),
+        "duet": "、" in artist,
     }
 
 
