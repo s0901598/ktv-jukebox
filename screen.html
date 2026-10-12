@@ -3,12 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>大螢幕 - KTV 點唱機</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="screen-body">
   <div class="stage">
-    <div class="video-area" id="video-area"></div>
+    <div class="video-area">
+      <div id="player"></div>
+
+      <!-- 清單空的時候 -->
+      <div class="overlay idle" id="idle">
+        <div class="big">輸入代碼 <span class="code" id="idle-code"></span> 快來點歌</div>
+        <div id="idle-url"></div>
+      </div>
+
+      <!-- 手機瀏覽器要先按一下才允許播放有聲音的影片 -->
+      <div class="overlay start" id="start">
+        <button class="start-btn" id="start-btn">▶ 開始播放</button>
+        <div class="tip" id="start-tip">按一下之後,後面的歌都會自動接著播</div>
+      </div>
+
+      <!-- 萬一瀏覽器還是擋下自動播放 -->
+      <div class="overlay tap" id="tap" hidden>
+        <button class="start-btn" id="tap-btn">▶ 點一下繼續播放</button>
+      </div>
+
+      <div class="toast" id="toast" hidden></div>
+    </div>
 
     <aside class="side">
       <div class="code-box">
@@ -24,11 +47,12 @@
         <h3>接下來</h3>
         <ul class="queue" id="queue"></ul>
       </div>
+      <div class="status" id="status"></div>
     </aside>
   </div>
 
   <script type="module">
-    import { subscribe, joinUrl, escapeHtml } from "./js/party.js";
+    import { subscribe, finishSong, joinUrl, escapeHtml } from "./js/party.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
@@ -36,26 +60,146 @@
 
     $("code").textContent = code;
     $("join-url").textContent = joinUrl(code);
+    $("idle-code").textContent = code;
+    $("idle-url").textContent = joinUrl(code);
 
-    subscribe(code, (party) => {
-      if (!party) {
-        $("video-area").innerHTML = `<div class="idle"><div class="big">派對不存在</div></div>`;
+    // ---------- YouTube 播放器 ----------
+    const YT_STATE = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3, CUED: 5 };
+    const UNPLAYABLE = [2, 5, 100, 101, 150]; // 101/150 = 影片禁止嵌入,100 = 影片不存在
+
+    let player = null;
+    let party = null;
+    let unlocked = false;      // 按過「開始播放」了沒
+    let loadedSongId = null;   // 播放器目前載入的是哪一首(清單項目的 id)
+    let lastPaused = false;
+    let watchdog = null;
+
+    window.onYouTubeIframeAPIReady = () => {
+      player = new YT.Player("player", {
+        width: "100%",
+        height: "100%",
+        playerVars: { playsinline: 1, rel: 0, fs: 0, iv_load_policy: 3, origin: location.origin },
+        events: {
+          onReady: () => sync(),
+          onStateChange: (e) => {
+            if (e.data === YT_STATE.PLAYING) $("tap").hidden = true;
+            if (e.data === YT_STATE.ENDED && loadedSongId) finishSong(code, loadedSongId);
+          },
+          onError: (e) => {
+            if (UNPLAYABLE.includes(e.data) && loadedSongId) {
+              finishSong(code, loadedSongId, "無法播放,已自動跳過");
+            }
+          },
+        },
+      });
+      window.__player = player; // 方便測試
+    };
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+
+    // 依照派對資料決定播放器該做什麼
+    function sync() {
+      const current = party?.queue[0];
+      $("idle").hidden = !!current;
+      $("start").hidden = unlocked || !current;
+      if (!player?.loadVideoById || !unlocked) return;
+
+      if (!current) {
+        if (loadedSongId) player.stopVideo();
+        loadedSongId = null;
         return;
       }
-      const [current, ...rest] = party.queue;
+      if (current.id !== loadedSongId) {
+        loadedSongId = current.id;
+        lastPaused = false;
+        player.loadVideoById(current.videoId);
+        // 6 秒後還沒開始播,多半是瀏覽器擋自動播放,請人點一下
+        clearTimeout(watchdog);
+        watchdog = setTimeout(() => {
+          const s = player.getPlayerState();
+          if (loadedSongId === current.id && (s === YT_STATE.UNSTARTED || s === YT_STATE.CUED)) $("tap").hidden = false;
+        }, 6000);
+      }
+      if (!!party.paused !== lastPaused) {
+        lastPaused = !!party.paused;
+        lastPaused ? player.pauseVideo() : player.playVideo();
+      }
+    }
 
-      // 階段 1:先顯示清單;階段 2 會在 video-area 放 YouTube 播放器
-      $("video-area").innerHTML = current
-        ? `<div class="idle"><div class="big">${escapeHtml(current.title)}</div><div>(影片播放功能在階段 2 加入)</div></div>`
-        : `<div class="idle"><div class="big">輸入代碼 <span class="code">${code}</span> 快來點歌</div><div>${escapeHtml(joinUrl(code))}</div></div>`;
+    // ---------- 開始播放:解鎖聲音、全螢幕、防休眠 ----------
+    const canFullscreen = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+    if (!canFullscreen) {
+      $("start-tip").innerHTML = "按一下之後,後面的歌都會自動接著播<br>iPhone 請把手機轉成橫向";
+    }
 
+    $("start-btn").addEventListener("click", () => {
+      unlocked = true;
+      sync(); // 在點擊當下載入影片,瀏覽器才會允許播放
+      enterFullscreen();
+      keepAwake();
+    });
+
+    $("tap-btn").addEventListener("click", () => {
+      player?.playVideo();
+      $("tap").hidden = true;
+    });
+
+    async function enterFullscreen() {
+      const el = document.documentElement;
+      try {
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        await screen.orientation?.lock?.("landscape");
+      } catch (_) { /* 不支援就算了 */ }
+    }
+
+    let wakeLock = null;
+    async function keepAwake() {
+      if (!("wakeLock" in navigator)) {
+        $("status").textContent = "⚠️ 此瀏覽器無法保持螢幕常亮,請到手機設定關閉「自動鎖定」";
+        return;
+      }
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+        $("status").textContent = "☀️ 螢幕保持常亮中";
+        wakeLock.addEventListener("release", () => { $("status").textContent = ""; });
+      } catch (_) {
+        $("status").textContent = "⚠️ 無法保持螢幕常亮,請到手機設定關閉「自動鎖定」";
+      }
+    }
+    // 切到別的 App 再回來,常亮會被取消,要重新申請
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && unlocked) keepAwake();
+    });
+
+    // ---------- 提示訊息(例如自動跳過) ----------
+    let lastNoticeAt = Date.now();
+    function showNotice(n) {
+      if (!n || n.at <= lastNoticeAt) return;
+      lastNoticeAt = n.at;
+      $("toast").textContent = n.text;
+      $("toast").hidden = false;
+      setTimeout(() => { $("toast").hidden = true; }, 6000);
+    }
+
+    // ---------- 畫面 ----------
+    subscribe(code, (p) => {
+      party = p;
+      if (!p) {
+        $("idle").hidden = false;
+        $("idle").innerHTML = `<div class="big">派對不存在</div>`;
+        return;
+      }
+      const [current, ...rest] = p.queue;
       $("now").innerHTML = current
         ? `${escapeHtml(current.title)}<div class="by">${escapeHtml(current.by)} 點的</div>`
         : `<span class="by">還沒有人點歌</span>`;
-
       $("queue").innerHTML = rest.length
         ? rest.map((s, i) => `<li><span class="num">${i + 1}</span>${escapeHtml(s.title)} <span class="by">· ${escapeHtml(s.by)}</span></li>`).join("")
         : `<li class="by">清單是空的</li>`;
+      showNotice(p.notice);
+      sync();
     });
   </script>
 </body>

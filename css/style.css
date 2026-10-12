@@ -238,3 +238,68 @@ body.screen-body {
 [hidden] { display: none !important; }
 .badge.duet { background: #ffb3d1; color: #3a0019; }
 .song-list .singer { color: var(--accent-2); font-size: 16px; margin-top: 3px; }
+
+/* ---------- 大螢幕播放器 ---------- */
+.stage .video-area #player,
+.stage .video-area iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+.stage .overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 1.2);
+  text-align: center;
+  padding: calc(var(--u) * 2);
+}
+.stage .overlay.idle { background: var(--bg); z-index: 2; }
+.stage .overlay.start, .stage .overlay.tap { background: rgba(0, 0, 0, 0.75); z-index: 3; }
+.overlay .big { font-size: calc(var(--u) * 4); color: var(--text); font-weight: 800; }
+.overlay .big .code { color: var(--accent-2); letter-spacing: 0.1em; }
+.overlay .tip { color: var(--muted); font-size: calc(var(--u) * 1.6); line-height: 1.5; }
+
+.start-btn {
+  border: 0;
+  border-radius: calc(var(--u) * 1.5);
+  background: var(--accent);
+  color: #fff;
+  font-size: calc(var(--u) * 3.6);
+  font-weight: 800;
+  padding: calc(var(--u) * 1.6) calc(var(--u) * 4);
+  cursor: pointer;
+}
+
+.stage .toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--u) * 2);
+  transform: translateX(-50%);
+  max-width: 90%;
+  background: rgba(30, 21, 51, 0.95);
+  border: 2px solid var(--accent-2);
+  color: var(--text);
+  font-size: calc(var(--u) * 1.6);
+  padding: calc(var(--u) * 0.8) calc(var(--u) * 1.6);
+  border-radius: calc(var(--u) * 1);
+  z-index: 4;
+}
+.side .status { color: var(--muted); font-size: calc(var(--u) * 0.95); }
+
+/* 點歌頁的提示 */
+.toast-m {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  max-width: 528px;
+  margin: 0 auto;
+  background: var(--panel-2);
+  border: 2px solid var(--accent-2);
+  color: var(--text);
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 17px;
+  z-index: 10;
+}

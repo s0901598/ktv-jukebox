@@ -67,6 +67,21 @@ export async function addSong(code, song) {
   return item;
 }
 
+// 一首歌結束(播完或無法播放)時換下一首。
+// 帶上歌曲 ID:只有它還是「正在播放」才移除,開了兩個大螢幕或重複觸發也只會跳一首。
+// notice 會顯示在大家的點歌頁上,例如「這首無法播放,已自動跳過」。
+export async function finishSong(code, songId, notice) {
+  return runTransaction(partyRef(code), (p) => {
+    if (!p) return p;
+    const queue = toList(p.queue);
+    if (queue[0]?.id !== songId) return; // 已經換過了,不動
+    const [done] = queue.splice(0, 1);
+    const next = { ...p, queue, paused: false };
+    if (notice) next.notice = { text: `「${done.title}」${notice}`, at: Date.now() };
+    return next;
+  });
+}
+
 // 從各種 YouTube 網址取出影片 ID
 export function parseYouTubeId(text) {
   const s = text.trim();

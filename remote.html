@@ -44,6 +44,7 @@
       <ul class="song-list" id="queue"></ul>
     </section>
   </main>
+  <div class="toast-m" id="toast" hidden></div>
 
   <script type="module">
     import { subscribe, addSong, parseYouTubeId, fetchTitle, escapeHtml } from "./js/party.js";
@@ -68,12 +69,25 @@
         </div>
       </li>`;
 
+    // 大螢幕自動跳過等提示,只顯示加入之後發生的
+    let lastNoticeAt = Date.now();
+    let toastTimer = null;
+    function showNotice(n) {
+      if (!n || n.at <= lastNoticeAt) return;
+      lastNoticeAt = n.at;
+      $("toast").textContent = n.text;
+      $("toast").hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { $("toast").hidden = true; }, 6000);
+    }
+
     subscribe(code, (party) => {
       if (!party) {
         $("now").innerHTML = `<li class="empty">派對已不存在</li>`;
         $("queue").innerHTML = "";
         return;
       }
+      showNotice(party.notice);
       const [current, ...rest] = party.queue;
       $("now").innerHTML = current ? songRow(current) : `<li class="empty">還沒有人點歌</li>`;
       $("queue").innerHTML = rest.length
