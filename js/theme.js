@@ -1,8 +1,7 @@
-// 深淺色切換:預設跟手機系統設定,按 ☀️/🌙 可手動切換,每支手機各自記住
+// 深淺色切換:預設淺色,按 🌙/☀️ 可切換深色,每支手機各自記住
 const KEY = "ktv-theme";
-const media = matchMedia("(prefers-color-scheme: dark)");
 
-const current = () => document.documentElement.dataset.theme || (media.matches ? "dark" : "light");
+const current = () => document.documentElement.dataset.theme || "light";
 
 function refreshButtons() {
   const dark = current() === "dark";
@@ -20,5 +19,4 @@ document.addEventListener("click", (e) => {
   try { localStorage.setItem(KEY, next); } catch (_) { /* 無痕模式存不了也沒關係 */ }
   refreshButtons();
 });
-media.addEventListener("change", refreshButtons);
 refreshButtons();

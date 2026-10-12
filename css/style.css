@@ -21,29 +21,7 @@
   color-scheme: light;
 }
 
-/* 深色:手機設定是深色、且沒有手動選淺色時;或手動選了深色 */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-  --bg: #1b1316;
-  --panel: #281d21;
-  --panel-2: #3b2b30;
-  --text: #fff4ef;
-  --muted: #c9b2ab;
-  --accent: #e8484f;
-  --on-accent: #ffffff;
-  --accent-2: #ffb627;
-  --on-accent-2: #3a2400;
-  --accent-2-text: #ffc14d;
-  --ok: #34c784;
-  --on-ok: #052817;
-  --ok-text: #4fd99a;
-  --danger: #e5484d;
-  --input-bg: #120c0e;
-  --bar-bg: #120c0e;
-  --shadow: rgba(0, 0, 0, 0.5);
-  color-scheme: dark;
-  }
-}
+/* 深色:手動選了深色才套用,預設一律淺色 */
 :root[data-theme="dark"] {
   --bg: #1b1316;
   --panel: #281d21;
