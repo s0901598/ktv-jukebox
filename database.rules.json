@@ -21,6 +21,13 @@
         ".write": true,
         ".validate": "newData.isString() && newData.val().length <= 10"
       }
+    },
+    "library": {
+      ".read": true,
+      "$videoId": {
+        ".write": true,
+        ".validate": "$videoId.matches(/^[A-Za-z0-9_-]{11}$/) && newData.hasChildren(['videoId','title'])"
+      }
     }
   }
 }

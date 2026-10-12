@@ -233,3 +233,6 @@ body.screen-body {
 }
 .idle .big { font-size: calc(var(--u) * 4); color: var(--text); font-weight: 800; }
 .idle .big .code { color: var(--accent-2); letter-spacing: 0.1em; }
+.badge.lib { background: #7ee3ff; color: #00222c; }
+
+[hidden] { display: none !important; }

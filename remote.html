@@ -21,6 +21,7 @@
       </form>
       <div class="msg" id="search-msg"></div>
       <ul class="song-list results" id="results"></ul>
+      <button class="btn secondary" id="yt-more" type="button" hidden>在 YouTube 搜尋更多版本</button>
       <a class="btn secondary yt-link" id="yt-link" href="https://www.youtube.com/" target="_blank" rel="noopener">到 YouTube 找(不限次數)</a>
     </section>
 
@@ -47,6 +48,7 @@
   <script type="module">
     import { subscribe, addSong, parseYouTubeId, fetchTitle, escapeHtml } from "./js/party.js";
     import { searchSongs, youtubeSearchUrl, QuotaExceededError } from "./js/youtube.js";
+    import { searchLibrary, collect } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
@@ -87,37 +89,55 @@
       $("yt-link").href = q ? youtubeSearchUrl(q) : "https://www.youtube.com/";
     });
 
-    $("search-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const q = $("keyword").value.trim();
+    const resultRow = (s, i) => `
+      <li>
+        <img src="https://i.ytimg.com/vi/${encodeURIComponent(s.videoId)}/mqdefault.jpg" alt="" loading="lazy">
+        <div class="info">
+          <div class="title">${escapeHtml(s.artist && s.song ? `${s.song} - ${s.artist}` : s.title)}</div>
+          <div class="by">
+            ${s.fromLibrary ? `<span class="badge lib">⭐ 歌庫</span>` : ""}${s.karaoke ? `<span class="badge">🎤 伴唱版</span>` : ""}
+            ${s.duration ? escapeHtml(s.duration) : ""}${s.lang ? " · " + escapeHtml(s.lang) : ""}${!s.fromLibrary && s.channel ? " · " + escapeHtml(s.channel) : ""}
+          </div>
+        </div>
+        <button class="pick" data-i="${i}">點歌</button>
+      </li>`;
+
+    const render = () => { $("results").innerHTML = results.map(resultRow).join(""); };
+
+    async function searchYouTube(q, btn) {
       const msg = $("search-msg");
-      const btn = e.submitter;
-      $("keyword").blur(); // 收起手機鍵盤,才看得到結果
       btn.disabled = true;
       msg.className = "msg ok";
-      msg.textContent = "搜尋中…";
-      $("results").innerHTML = "";
+      msg.textContent = "到 YouTube 搜尋中…";
+      $("yt-more").hidden = true;
       try {
-        results = await searchSongs(q);
+        const known = new Set(results.map((s) => s.videoId));
+        results = [...results, ...(await searchSongs(q)).filter((s) => !known.has(s.videoId))];
+        render();
         msg.textContent = results.length ? "" : "找不到相關的歌,換個關鍵字試試";
-        $("results").innerHTML = results.map((s, i) => `
-          <li>
-            <img src="https://i.ytimg.com/vi/${encodeURIComponent(s.videoId)}/mqdefault.jpg" alt="" loading="lazy">
-            <div class="info">
-              <div class="title">${escapeHtml(s.title)}</div>
-              <div class="by">
-                ${s.karaoke ? `<span class="badge">🎤 伴唱版</span>` : ""}
-                ${s.duration ? escapeHtml(s.duration) + " · " : ""}${escapeHtml(s.channel)}
-              </div>
-            </div>
-            <button class="pick" data-i="${i}">點歌</button>
-          </li>`).join("");
       } catch (err) {
         msg.className = "msg";
         msg.textContent = err.message || "搜尋失敗,請稍後再試";
         if (err instanceof QuotaExceededError) $("paste-card").open = true;
       } finally {
         btn.disabled = false;
+      }
+    }
+
+    // 先查歌庫(不扣額度);歌庫沒有才自動搜 YouTube
+    $("search-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const q = $("keyword").value.trim();
+      $("keyword").blur(); // 收起手機鍵盤,才看得到結果
+      $("search-msg").textContent = "";
+      $("yt-more").hidden = true;
+      results = await searchLibrary(q).catch(() => []);
+      render();
+      if (results.length) {
+        $("yt-more").hidden = false;
+        $("yt-more").onclick = () => searchYouTube(q, $("yt-more"));
+      } else {
+        await searchYouTube(q, e.submitter);
       }
     });
 
@@ -128,7 +148,8 @@
       btn.disabled = true;
       btn.textContent = "…";
       try {
-        await addSong(code, { videoId: s.videoId, title: s.title, by: name });
+        await addSong(code, { videoId: s.videoId, title: s.artist && s.song ? `${s.song} - ${s.artist}` : s.title, by: name });
+        collect(s);
         btn.textContent = "已點 ✓";
         btn.classList.add("done");
       } catch (err) {
@@ -156,6 +177,7 @@
       try {
         const title = await fetchTitle(videoId);
         await addSong(code, { videoId, title, by: name });
+        collect({ videoId, title });
         msg.textContent = `已點歌:${title}`;
         $("link").value = "";
       } catch (err) {
