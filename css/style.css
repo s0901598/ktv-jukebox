@@ -287,19 +287,109 @@ body.screen-body {
 }
 .side .status { color: var(--muted); font-size: calc(var(--u) * 0.95); }
 
-/* 點歌頁的提示 */
+/* ---------- 點歌頁:分頁、按鈕、提示 ---------- */
+body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  background: #0d0817;
+  border-top: 1px solid var(--panel-2);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 20;
+}
+.tabbar button {
+  flex: 1;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 19px;
+  font-weight: 700;
+  padding: 18px 8px;
+  cursor: pointer;
+}
+.tabbar button.active { color: var(--accent); box-shadow: inset 0 3px 0 var(--accent); }
+
+.btn.alt, .pick.alt { background: var(--accent-2); color: #2a1a00; }
+.btn.danger, .mini.danger { background: var(--danger); color: #fff; }
+
+.btn-pair, .controls { display: flex; gap: 10px; }
+.btn-pair .btn, .controls .btn { flex: 1; }
+
+.pick-col { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.pick-col .pick { padding: 9px 12px; }
+.pick:disabled:not(.done) { opacity: 0.5; }
+
+.row-btns { display: flex; flex-direction: column; gap: 6px; flex: none; margin-left: auto; }
+.mini {
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent-2);
+  color: #2a1a00;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 9px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.song-list li .info { flex: 1; }
+
 .toast-m {
   position: fixed;
   left: 16px;
   right: 16px;
-  bottom: 16px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
   max-width: 528px;
   margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: var(--panel-2);
   border: 2px solid var(--accent-2);
   color: var(--text);
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 12px;
   font-size: 17px;
-  z-index: 10;
+  line-height: 1.4;
+  z-index: 30;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+.toast-m span { flex: 1; }
+.toast-m button {
+  flex: none;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+/* 大螢幕暫停提示 */
+.stage .paused-pill {
+  position: absolute;
+  top: calc(var(--u) * 2);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid var(--accent-2);
+  color: var(--accent-2);
+  font-size: calc(var(--u) * 2.4);
+  font-weight: 800;
+  padding: calc(var(--u) * 0.6) calc(var(--u) * 2);
+  border-radius: calc(var(--u) * 3);
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* 窄手機:縮小縮圖,留空間給歌名 */
+@media (max-width: 360px) {
+  .song-list img, .results img { width: 64px; }
+  .song-list li { gap: 8px; }
+  .mini, .pick-col .pick { padding: 8px 9px; font-size: 15px; }
 }

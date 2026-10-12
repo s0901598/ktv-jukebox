@@ -31,6 +31,7 @@
       </div>
 
       <div class="toast" id="toast" hidden></div>
+      <div class="paused-pill" id="paused" hidden>⏸ 暫停中</div>
     </div>
 
     <aside class="side">
@@ -90,7 +91,7 @@
             if (UNPLAYABLE.includes(e.data) && loadedSongId) {
               const bad = party?.queue[0]; // 先記下來,finishSong 會立刻更新本地的 party
               if (bad?.id === loadedSongId) forget(bad.videoId);
-              finishSong(code, loadedSongId, "無法播放,已自動跳過");
+              finishSong(code, loadedSongId, "「{title}」無法播放,已自動跳過");
             }
           },
         },
@@ -202,6 +203,7 @@
         ? rest.map((s, i) => `<li><span class="num">${i + 1}</span>${escapeHtml(s.title)} <span class="by">· ${escapeHtml(s.by)}</span></li>`).join("")
         : `<li class="by">清單是空的</li>`;
       showNotice(p.notice);
+      $("paused").hidden = !(p.paused && current);
       sync();
     });
   </script>

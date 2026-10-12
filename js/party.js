@@ -54,22 +54,25 @@ export function subscribe(code, callback) {
   });
 }
 
-// 點歌:加到清單最後
-export async function addSong(code, song) {
+// 點歌:加到清單最後;next = true 是插播,排到「下一首」(queue[1])
+// 回傳 position:0 = 馬上播放,1 = 下一首,2 = 再下一首…
+export async function addSong(code, song, { next = false } = {}) {
   const item = { ...song, id: newId(), addedAt: Date.now() };
+  let position = 0;
   const result = await runTransaction(partyRef(code), (p) => {
     if (!p) return p; // 尚未從伺服器載入,Firebase 會用最新資料重跑
     const queue = toList(p.queue);
-    queue.push(item);
+    position = next ? Math.min(1, queue.length) : queue.length;
+    queue.splice(position, 0, item);
     return { ...p, queue };
   });
   if (!result.committed || !result.snapshot.exists()) throw new Error("找不到這個派對");
-  return item;
+  return { item, position };
 }
 
-// 一首歌結束(播完或無法播放)時換下一首。
-// 帶上歌曲 ID:只有它還是「正在播放」才移除,開了兩個大螢幕或重複觸發也只會跳一首。
-// notice 會顯示在大家的點歌頁上,例如「這首無法播放,已自動跳過」。
+// 以下操作都帶歌曲 ID:目標已經不在原位(別人先按了)就不動,30 人同時按也只會生效一次。
+
+// 一首歌結束換下一首:播完、無法播放、切歌都走這裡
 export async function finishSong(code, songId, notice) {
   return runTransaction(partyRef(code), (p) => {
     if (!p) return p;
@@ -77,8 +80,42 @@ export async function finishSong(code, songId, notice) {
     if (queue[0]?.id !== songId) return; // 已經換過了,不動
     const [done] = queue.splice(0, 1);
     const next = { ...p, queue, paused: false };
-    if (notice) next.notice = { text: `「${done.title}」${notice}`, at: Date.now() };
+    if (notice) next.notice = { text: notice.replace("{title}", done.title), at: Date.now() };
     return next;
+  });
+}
+
+export const skipSong = (code, songId, by) => finishSong(code, songId, `${by} 切掉了「{title}」`);
+
+// 已在排隊的歌插播到下一首
+export async function moveToNext(code, songId) {
+  return runTransaction(partyRef(code), (p) => {
+    if (!p) return p;
+    const queue = toList(p.queue);
+    const i = queue.findIndex((s) => s.id === songId);
+    if (i < 2) return; // 不在清單裡,或已經是正在播放/下一首
+    queue.splice(1, 0, ...queue.splice(i, 1));
+    return { ...p, queue };
+  });
+}
+
+// 刪除清單中的歌(正在播放的那首請用 skipSong)
+export async function removeSong(code, songId, by) {
+  return runTransaction(partyRef(code), (p) => {
+    if (!p) return p;
+    const queue = toList(p.queue);
+    const i = queue.findIndex((s) => s.id === songId);
+    if (i < 1) return;
+    const [done] = queue.splice(i, 1);
+    return { ...p, queue, notice: { text: `${by} 刪除了「${done.title}」`, at: Date.now() } };
+  });
+}
+
+export async function setPaused(code, paused) {
+  return runTransaction(partyRef(code), (p) => {
+    if (!p) return p;
+    if (!toList(p.queue).length || !!p.paused === paused) return;
+    return { ...p, paused };
   });
 }
 
