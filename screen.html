@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <!-- 加入主畫面後像 App 一樣全畫面開啟 -->
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=202610122345">
   <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
 </head>
 <body class="screen-body">
@@ -69,12 +69,6 @@
     </aside>
   </div>
 
-  <!-- 直向拿著時提示轉橫向 -->
-  <div class="rotate-hint" id="rotate-hint">
-    <div class="rotate-icon">📱</div>
-    <div>請把手機轉成橫向</div>
-  </div>
-
   <!-- iPhone 不支援網頁全螢幕時的說明 -->
   <div class="fs-guide" id="fs-guide" hidden>
     <div class="fs-guide-card">
@@ -88,7 +82,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/theme.js"></script>
+  <script type="module" src="js/theme.js?v=202610122345"></script>
   <script type="module">
     import { subscribe, finishSong, setPaused, joinUrl, escapeHtml } from "./js/party.js";
     import { forget } from "./js/library.js";
@@ -96,6 +90,24 @@
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
     if (!/^[0-9]{4}$/.test(code)) location.replace("./");
+
+    // ---------- 依實際看得到的畫面大小排版,讓 16:9 畫面置中 ----------
+    // iPhone Safari 的 100vh 含工具列後面被擋住的高度,轉向或收合工具列時也會變,所以用程式量
+    function fitStage() {
+      const vv = window.visualViewport;
+      const cs = getComputedStyle(document.body);
+      const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const w = (vv ? vv.width : innerWidth) - padX;
+      const h = (vv ? vv.height : innerHeight) - padY;
+      const u = Math.max(1, Math.min(w / 100, h / 56.25));
+      $("stage").style.setProperty("--u", `${u}px`);
+      scrollTo(0, 0);
+    }
+    fitStage();
+    addEventListener("resize", fitStage);
+    addEventListener("orientationchange", () => { fitStage(); setTimeout(fitStage, 300); setTimeout(fitStage, 800); });
+    window.visualViewport?.addEventListener("resize", fitStage);
 
     $("code").textContent = code;
     $("join-url").textContent = joinUrl(code);
@@ -247,7 +259,7 @@
     // ---------- 開始播放:解鎖聲音、全螢幕、防休眠 ----------
     const canFullscreen = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
     if (!canFullscreen) {
-      $("start-tip").innerHTML = "按一下之後,後面的歌都會自動接著播<br>iPhone 請把手機轉成橫向";
+      $("start-tip").textContent = "按一下之後,後面的歌都會自動接著播";
     }
 
     $("start-btn").addEventListener("click", () => {
