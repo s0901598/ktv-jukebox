@@ -1534,5 +1534,29 @@
   "karaoke": true,
   "duet": false,
   "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "王傑",
+  "song": "我是真的愛上你",
+  "videoId": "gGLp7ht_2bk",
+  "title": "王傑 Dave Wong《我是真的愛上你》[Lyrics MV]",
+  "channel": "英皇娛樂 eeg music",
+  "duration": "5:16",
+  "karaoke": false,
+  "duet": false,
+  "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "王傑",
+  "song": "忘了你忘了我",
+  "videoId": "WAViLAeRyFc",
+  "title": "(伴奏版)王傑-忘了你忘了我(DIY卡拉OK字幕)",
+  "channel": "Davidpinpun Huang",
+  "duration": "4:40",
+  "karaoke": true,
+  "duet": false,
+  "group": false
  }
 ]
