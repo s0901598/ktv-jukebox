@@ -190,18 +190,27 @@ input[type="search"] {
 .paste-card[open] summary { margin-bottom: 8px; }
 
 /* ---------- 大螢幕(橫版 16:9) ---------- */
-/* 播放端:固定在可視範圍內,不捲動;內距避開瀏海與圓角 */
+/* 播放端:固定在實際看得到的範圍內(位置與大小由 screen.html 依 visualViewport 設定),不捲動 */
 body.screen-body {
   position: fixed;
-  inset: 0;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100dvh;
+  margin: 0;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #000;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  box-sizing: border-box;
   overscroll-behavior: none;
+}
+/* 量瀏海寬度用:左右取較大的一邊,兩邊留一樣寬,畫面才會置中 */
+#safe-probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  padding-left: max(env(safe-area-inset-left), env(safe-area-inset-right));
 }
 
 /* 以 16:9 填滿可用空間。--u 由 screen.html 依實際看得到的畫面大小計算(iPhone 的 100vh 會包含被工具列擋住的部分);
@@ -523,12 +532,15 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
   top: calc(var(--u) * 1);
   right: calc(var(--u) * 1.2);
   z-index: 4;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   background: rgba(0, 0, 0, 0.45);
-  color: rgba(255, 255, 255, 0.75);
-  font-size: calc(var(--u) * 1.2);
-  padding: calc(var(--u) * 0.3) calc(var(--u) * 0.9);
-  border-radius: calc(var(--u) * 0.8);
-  pointer-events: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: max(13px, calc(var(--u) * 1.2));
+  padding: 0 max(12px, calc(var(--u) * 0.9));
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 .stage .corner-code b { color: var(--accent-2); letter-spacing: 0.08em; }
 
@@ -546,55 +558,19 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .mobile .home-tools { display: flex; justify-content: flex-end; }
 .side .theme-toggle { font-size: calc(var(--u) * 1.1); padding: calc(var(--u) * 0.4) calc(var(--u) * 0.7); align-self: flex-start; }
 
-/* ---------- 大螢幕右側控制鈕(全螢幕、收合) ---------- */
-.screen-controls {
+/* 右側資訊欄的收起按鈕 */
+.side { position: relative; }
+.side-close {
   position: absolute;
-  right: calc(14px + env(safe-area-inset-right));
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.ctrl-btn {
-  width: max(48px, calc(var(--u) * 4.2));
-  height: max(48px, calc(var(--u) * 4.2));
+  top: calc(var(--u) * 0.6);
+  right: calc(var(--u) * 0.6);
+  width: max(44px, calc(var(--u) * 3));
+  height: max(44px, calc(var(--u) * 3));
+  border: 0;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: max(20px, calc(var(--u) * 1.8));
-  line-height: 1;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.ctrl-btn:active { background: rgba(0, 0, 0, 0.75); }
-
-/* ---------- iPhone 全螢幕說明 ---------- */
-.fs-guide {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 16px;
-}
-.fs-guide-card {
-  background: var(--panel);
+  background: var(--panel-2);
   color: var(--text);
-  border-radius: var(--radius);
-  padding: 20px 24px;
-  max-width: 560px;
-  max-height: 100%;
-  overflow-y: auto;
-  font-size: 16px;
-  line-height: 1.55;
+  font-size: max(18px, calc(var(--u) * 1.4));
+  cursor: pointer;
+  z-index: 2;
 }
-.fs-guide-card h2 { margin: 0 0 6px; font-size: 20px; }
-.fs-guide-note { color: var(--muted); margin: 0 0 8px; }
-.fs-guide-card ol { margin: 0; padding-left: 1.3em; }
-.fs-guide-card li { margin-bottom: 10px; }
-.fs-guide-card .btn { margin-top: 8px; }

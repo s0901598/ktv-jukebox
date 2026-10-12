@@ -12,10 +12,11 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610122345">
+  <link rel="stylesheet" href="css/style.css?v=202610130000">
   <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
 </head>
 <body class="screen-body">
+  <div id="safe-probe" aria-hidden="true"></div>
   <div class="stage" id="stage">
     <div class="video-area">
       <div id="player"></div>
@@ -42,15 +43,11 @@
 
       <!-- 收起資訊欄時:上方跑馬燈顯示下一首、右上角小代碼 -->
       <div class="marquee" id="marquee" hidden><div class="track" id="marquee-track"></div></div>
-      <div class="corner-code" id="corner-code" hidden>代碼 <b id="corner-code-num"></b></div>
-      <!-- 右側控制鈕:至少 48px、離邊緣有距離,手指才按得到 -->
-      <div class="screen-controls">
-        <button class="ctrl-btn" id="fs-btn" type="button" aria-label="全螢幕">⛶</button>
-        <button class="ctrl-btn" id="side-toggle" type="button" aria-label="打開或收起右側資訊欄">▶</button>
-      </div>
+      <button class="corner-code" id="corner-code" type="button" hidden aria-label="打開右側資訊欄">代碼 <b id="corner-code-num"></b> ☰</button>
     </div>
 
     <aside class="side">
+      <button class="side-close" id="side-close" type="button" aria-label="收起右側資訊欄">✕</button>
       <div class="code-box">
         <div class="code-label">派對代碼</div>
         <div class="code" id="code"></div>
@@ -69,20 +66,7 @@
     </aside>
   </div>
 
-  <!-- iPhone 不支援網頁全螢幕時的說明 -->
-  <div class="fs-guide" id="fs-guide" hidden>
-    <div class="fs-guide-card">
-      <h2>iPhone 要這樣變全螢幕</h2>
-      <p class="fs-guide-note">Apple 不允許網頁直接進入全螢幕,可以用下面任一種方法:</p>
-      <ol>
-        <li><b>隱藏工具列(最快)</b><br>點網址列左邊的「<b>aA</b>」或頁面選單圖示,選「<b>隱藏工具列</b>」。網址列和分頁會收起來,點畫面最上方或最下方可以叫回來。</li>
-        <li><b>加入主畫面</b><br>點下方的「<b>分享</b>」(方框加向上箭頭的圖示)→「<b>加入主畫面</b>」,之後從桌面的「KTV點唱機」圖示打開,就完全沒有網址列。</li>
-      </ol>
-      <button class="btn" id="fs-guide-close" type="button">知道了</button>
-    </div>
-  </div>
-
-  <script type="module" src="js/theme.js?v=202610122345"></script>
+  <script type="module" src="js/theme.js?v=202610130000"></script>
   <script type="module">
     import { subscribe, finishSong, setPaused, joinUrl, escapeHtml } from "./js/party.js";
     import { forget } from "./js/library.js";
@@ -95,12 +79,15 @@
     // iPhone Safari 的 100vh 含工具列後面被擋住的高度,轉向或收合工具列時也會變,所以用程式量
     function fitStage() {
       const vv = window.visualViewport;
-      const cs = getComputedStyle(document.body);
-      const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-      const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-      const w = (vv ? vv.width : innerWidth) - padX;
-      const h = (vv ? vv.height : innerHeight) - padY;
-      const u = Math.max(1, Math.min(w / 100, h / 56.25));
+      const w = vv ? vv.width : innerWidth;
+      const h = vv ? vv.height : innerHeight;
+      const body = document.body.style;
+      body.left = `${vv ? vv.offsetLeft : 0}px`;
+      body.top = `${vv ? vv.offsetTop : 0}px`;
+      body.width = `${w}px`;
+      body.height = `${h}px`;
+      const safeX = parseFloat(getComputedStyle($("safe-probe")).paddingLeft) || 0;
+      const u = Math.max(1, Math.min((w - safeX * 2) / 100, h / 56.25));
       $("stage").style.setProperty("--u", `${u}px`);
       scrollTo(0, 0);
     }
@@ -108,6 +95,7 @@
     addEventListener("resize", fitStage);
     addEventListener("orientationchange", () => { fitStage(); setTimeout(fitStage, 300); setTimeout(fitStage, 800); });
     window.visualViewport?.addEventListener("resize", fitStage);
+    window.visualViewport?.addEventListener("scroll", fitStage);
 
     $("code").textContent = code;
     $("join-url").textContent = joinUrl(code);
@@ -130,7 +118,7 @@
       player = new YT.Player("player", {
         width: "100%",
         height: "100%",
-        playerVars: { playsinline: 1, rel: 0, fs: 0, iv_load_policy: 3, origin: location.origin },
+        playerVars: { playsinline: 1, rel: 0, fs: 1, iv_load_policy: 3, origin: location.origin },
         events: {
           onReady: () => sync(),
           onStateChange: (e) => {
@@ -209,11 +197,11 @@
     function setCollapsed(c) {
       collapsed = c;
       $("stage").classList.toggle("collapsed", c);
-      $("side-toggle").textContent = c ? "◀" : "▶";
       $("corner-code").hidden = !c;
       updateMarquee();
     }
-    $("side-toggle").addEventListener("click", () => setCollapsed(!collapsed));
+    $("corner-code").addEventListener("click", () => setCollapsed(false));
+    $("side-close").addEventListener("click", () => setCollapsed(true));
 
     // 跑馬燈:每首歌開始時跑一次,之後每 40 秒跑一次,跑完就隱藏
     const MARQUEE_EVERY = 40000;
@@ -273,28 +261,6 @@
       player?.playVideo();
       $("tap").hidden = true;
     });
-
-    // ---------- 全螢幕按鈕 ----------
-    const isStandalone = navigator.standalone || matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches;
-    if (isStandalone) $("fs-btn").hidden = true; // 從主畫面圖示開啟時已經是全畫面
-    const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
-    $("fs-btn").addEventListener("click", async () => {
-      if (!canFullscreen) {
-        $("fs-guide").hidden = false; // iPhone:顯示替代方法
-        return;
-      }
-      if (fsElement()) {
-        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-      } else {
-        await enterFullscreen();
-        // 瀏覽器表面上支援、實際上沒進入全螢幕(部分 iPhone)時,也改顯示說明
-        setTimeout(() => { if (!fsElement()) $("fs-guide").hidden = false; }, 600);
-      }
-    });
-    $("fs-guide-close").addEventListener("click", () => { $("fs-guide").hidden = true; });
-    const refreshFsBtn = () => { $("fs-btn").textContent = fsElement() ? "✕" : "⛶"; };
-    document.addEventListener("fullscreenchange", refreshFsBtn);
-    document.addEventListener("webkitfullscreenchange", refreshFsBtn);
 
     async function enterFullscreen() {
       const el = document.documentElement;
