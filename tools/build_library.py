@@ -1,6 +1,6 @@
 """幫歌單裡每首歌找 YouTube 伴唱版,合併進 data/library.json。
 
-用法: python3 tools/build_library.py tools/songs-batch1.txt
+用法: python3 tools/build_library.py [--max 70] tools/songs-*.txt
 歌單格式: 一行一首「語言|歌手|歌名」,對唱歌的歌手用「、」分開(會自動標成對唱)。已經在歌庫裡的歌會跳過,不重複扣額度。
 每首歌扣約 101 點 YouTube 額度(搜尋 100 + 查長度 1),每天 10,000 點。
 """
@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LIBRARY = ROOT / "data" / "library.json"
+NOT_FOUND = ROOT / "data" / "not-found.json"  # 找不到伴唱版的歌,之後不再重找,免得每天浪費額度
 KEY = re.search(r'youtubeApiKey = "([^"]+)"', (ROOT / "js" / "config.js").read_text()).group(1)
 REFERER = "http://localhost:8765/"  # 金鑰限制只允許 GitHub 網址與這個本機網址
 
@@ -102,32 +103,43 @@ def find(lang, artist, song):
     }
 
 
-def main(list_file):
+def main(list_files, limit):
     library = json.loads(LIBRARY.read_text()) if LIBRARY.exists() else []
-    have = {(s["artist"], s["song"]) for s in library}
-    added = []
-    for line in Path(list_file).read_text().splitlines():
-        if not line.strip():
-            continue
+    not_found = json.loads(NOT_FOUND.read_text()) if NOT_FOUND.exists() else []
+    have = {(s["artist"], s["song"]) for s in library} | {(s["artist"], s["song"]) for s in not_found}
+    added, searched = [], 0
+    lines = [line for f in list_files for line in Path(f).read_text().splitlines() if line.strip()]
+    for line in lines:
         lang, artist, song = (x.strip() for x in line.split("|"))
         if (artist, song) in have:
             continue
+        if searched >= limit:
+            print(f"已達本次上限 {limit} 首,剩下的下次再找")
+            break
         try:
             entry = find(lang, artist, song)
         except RuntimeError as e:
             print(f"停止:{e}(已處理的歌會先存起來)")
             break
+        searched += 1
+        have.add((artist, song))
         if entry:
             library.append(entry)
-            have.add((artist, song))
             added.append(entry)
             print(f"✓ {artist} {song} → {entry['title']} ({entry['duration']})")
         else:
+            not_found.append({"lang": lang, "artist": artist, "song": song})
             print(f"✗ {artist} {song}:找不到")
     LIBRARY.parent.mkdir(exist_ok=True)
     LIBRARY.write_text(json.dumps(library, ensure_ascii=False, indent=1) + "\n")
-    print(f"新增 {len(added)} 首,歌庫共 {len(library)} 首")
+    NOT_FOUND.write_text(json.dumps(not_found, ensure_ascii=False, indent=1) + "\n")
+    remaining = sum(1 for line in lines if tuple(x.strip() for x in line.split("|")[1:]) not in have)
+    print(f"新增 {len(added)} 首,歌庫共 {len(library)} 首,還沒找的 {remaining} 首")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    args = sys.argv[1:]
+    limit = 10**9
+    if args[:1] == ["--max"]:
+        limit, args = int(args[1]), args[2:]
+    main(args, limit)
