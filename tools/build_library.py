@@ -16,6 +16,10 @@ LIBRARY = ROOT / "data" / "library.json"
 KEY = re.search(r'youtubeApiKey = "([^"]+)"', (ROOT / "js" / "config.js").read_text()).group(1)
 REFERER = "http://localhost:8765/"  # 金鑰限制只允許 GitHub 網址與這個本機網址
 
+# 歌庫「🎸 團體」分類用;新增樂團或團體時加在這裡
+GROUPS = {"五月天", "茄子蛋", "玖壹壹", "美秀集團", "告五人", "小虎隊", "蘇打綠", "動力火車", "F.I.R.", "S.H.E",
+          "信樂團", "無印良品", "5566", "南拳媽媽", "八三夭", "滅火器"}
+
 KARAOKE = re.compile(r"ktv|伴唱|卡拉|karaoke|導唱|导唱|伴奏|消音", re.I)
 BAD = re.compile(r"cover|翻唱|教學|教唱|live|現場|演唱會|dj|remix|舞曲|一小時|循環|串燒|合輯|reaction", re.I)
 
@@ -94,6 +98,7 @@ def find(lang, artist, song):
         "videoId": best["videoId"], "title": best["title"], "channel": best["channel"],
         "duration": fmt(best["sec"]), "karaoke": bool(KARAOKE.search(best["title"])),
         "duet": "、" in artist,
+        "group": artist in GROUPS,
     }
 
 

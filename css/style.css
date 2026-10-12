@@ -392,6 +392,7 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
   .song-list img, .results img { width: 64px; }
   .song-list li { gap: 8px; }
   .mini, .pick-col .pick { padding: 8px 9px; font-size: 15px; }
+  .chips button { font-size: 14px; min-width: 0; }
 }
 
 /* ---------- 四個分頁、歌庫分類 ---------- */
@@ -420,17 +421,30 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 }
 .card h2 small { color: var(--muted); font-size: 15px; font-weight: 400; margin-left: 6px; }
 
-.chips { display: flex; gap: 6px; margin: 12px 0 4px; }
+/* 分類按鈕:一排可左右滑;一次顯示 4.5 顆,露出半顆讓人知道後面還有 */
+.chips {
+  display: flex;
+  gap: 6px;
+  margin: 12px -20px 4px 0;
+  padding-right: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.chips::-webkit-scrollbar { display: none; }
 .chips button {
+  flex: 0 0 calc((100% + 20px - 4 * 6px) / 4.5);
+  scroll-snap-align: start;
   border: 2px solid var(--panel-2);
   background: none;
   color: var(--text);
   border-radius: 999px;
   padding: 8px 0;
-  flex: 1;
   font-size: 16px;
   white-space: nowrap;
   cursor: pointer;
 }
 .chips button.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
 #lib-empty .btn { margin-top: 10px; }
+.badge.group { background: #b8f5a0; color: #133300; }

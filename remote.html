@@ -17,12 +17,13 @@
     <div id="view-library">
       <section class="card">
         <h2>📚 歌庫 <small id="lib-count"></small></h2>
-        <input id="lib-filter" type="search" placeholder="輸入歌名或歌手,馬上篩選" autocomplete="off">
+        <input id="lib-filter" type="search" placeholder="打歌名或歌手,馬上篩選" autocomplete="off">
         <div class="chips" id="lib-chips">
           <button data-cat="all" class="active">全部</button>
           <button data-cat="國語">國語</button>
           <button data-cat="台語">台語</button>
           <button data-cat="duet">👫 對唱</button>
+          <button data-cat="group">🎸 團體</button>
         </div>
         <ul class="song-list" id="lib-list"></ul>
         <div id="lib-empty" class="empty" hidden>
@@ -220,7 +221,7 @@
           <div class="title">${escapeHtml(s.song || s.title)}</div>
           ${s.artist ? `<div class="singer">🎙 ${escapeHtml(s.artist)} 演唱</div>` : ""}
           ${extra || `<div class="by">
-            ${s.fromLibrary ? `<span class="badge lib">⭐ 歌庫</span>` : ""}${s.duet ? `<span class="badge duet">👫 對唱</span>` : ""}${s.karaoke ? `<span class="badge">🎤 伴唱版</span>` : ""}
+            ${s.fromLibrary ? `<span class="badge lib">⭐ 歌庫</span>` : ""}${s.duet ? `<span class="badge duet">👫 對唱</span>` : ""}${s.group ? `<span class="badge group">🎸 團體</span>` : ""}${s.karaoke ? `<span class="badge">🎤 伴唱版</span>` : ""}
             ${[s.duration, s.lang, !s.artist && s.channel ? `頻道:${s.channel}` : ""].filter(Boolean).map(escapeHtml).join(" · ")}
           </div>`}
         </div>
