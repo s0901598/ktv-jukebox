@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>點歌 - KTV 點唱機</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
 </head>
 <body class="with-tabs">
   <main class="mobile">
     <div class="topbar">
       <span>派對 <strong id="code-label"></strong></span>
-      <span>我是 <b id="name-label"></b></span>
+      <span>我是 <b id="name-label"></b> <button class="theme-toggle" data-theme-toggle type="button">🌙</button></span>
     </div>
 
     <!-- ===== 歌庫 ===== -->
@@ -97,6 +98,7 @@
     <button id="toast-go" hidden>看播放清單</button>
   </div>
 
+  <script type="module" src="js/theme.js"></script>
   <script type="module">
     import {
       subscribe, addSong, skipSong, moveToNext, removeSong, setPaused,

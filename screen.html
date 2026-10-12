@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>大螢幕 - KTV 點唱機</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
 </head>
 <body class="screen-body">
   <div class="stage" id="stage">
@@ -54,9 +55,11 @@
         <ul class="queue" id="queue"></ul>
       </div>
       <div class="status" id="status"></div>
+      <button class="theme-toggle" data-theme-toggle type="button">🌙</button>
     </aside>
   </div>
 
+  <script type="module" src="js/theme.js"></script>
   <script type="module">
     import { subscribe, finishSong, setPaused, joinUrl, escapeHtml } from "./js/party.js";
     import { forget } from "./js/library.js";
