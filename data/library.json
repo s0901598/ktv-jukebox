@@ -1558,5 +1558,41 @@
   "karaoke": true,
   "duet": false,
   "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "張學友",
+  "song": "在你身邊",
+  "videoId": "Mkm3mPafWr0",
+  "title": "在你身边 张学友 (歌词版)",
+  "channel": "GM Lyric",
+  "duration": "3:18",
+  "karaoke": false,
+  "duet": false,
+  "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "陳奕迅",
+  "song": "讓我留在你身邊",
+  "videoId": "BYuRyOkuSjM",
+  "title": "陳奕迅 - 讓我留在你身邊【最渺小的我，有大大的夢】[ 歌詞 ]",
+  "channel": "TWKchannel",
+  "duration": "3:05",
+  "karaoke": false,
+  "duet": false,
+  "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "張學友",
+  "song": "咖啡",
+  "videoId": "-GsAFlgnXOI",
+  "title": "咖啡 张学友 (歌词版)",
+  "channel": "GM Lyric",
+  "duration": "4:07",
+  "karaoke": false,
+  "duet": false,
+  "group": false
  }
 ]
