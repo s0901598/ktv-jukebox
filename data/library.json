@@ -1642,5 +1642,41 @@
   "karaoke": true,
   "duet": false,
   "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "張學友",
+  "song": "一千個傷心的理由",
+  "videoId": "kPhlJJYVn84",
+  "title": "(伴奏版)張學友-一千個傷心的理由(DIY卡拉OK字幕)",
+  "channel": "Davidpinpun Huang",
+  "duration": "4:40",
+  "karaoke": true,
+  "duet": false,
+  "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "張學友",
+  "song": "祝福",
+  "videoId": "8Iuhdd5-5ls",
+  "title": "[Full HD修復] 張學友-祝福-MV KTV 卡拉OK(伴奏版)",
+  "channel": "MIMI 音樂MV KTV 卡拉OK 分享",
+  "duration": "4:37",
+  "karaoke": true,
+  "duet": false,
+  "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "張學友",
+  "song": "只想一生跟你走",
+  "videoId": "S5JxyKLM20Y",
+  "title": "只想一生跟你走-張學友-伴奏 KARAOKE",
+  "channel": "Using Karaoke",
+  "duration": "5:07",
+  "karaoke": true,
+  "duet": false,
+  "group": false
  }
 ]
