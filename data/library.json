@@ -1594,5 +1594,53 @@
   "karaoke": false,
   "duet": false,
   "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "郭采潔",
+  "song": "I need you",
+  "videoId": "sSo1yYfSZ6c",
+  "title": "郭采潔 Amber - I need you (official官方完整版MV)",
+  "channel": "Timeless Music",
+  "duration": "4:27",
+  "karaoke": false,
+  "duet": false,
+  "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "郭采潔",
+  "song": "又圓了的月亮",
+  "videoId": "OfZfw3S_ZEk",
+  "title": "郭采潔 又圓了的月亮 -華納official HQ官方版MV",
+  "channel": "Timeless Music",
+  "duration": "4:56",
+  "karaoke": false,
+  "duet": false,
+  "group": false
+ },
+ {
+  "lang": "國語",
+  "artist": "郭采潔",
+  "song": "誠實地想你",
+  "videoId": "L_RYENX-EPE",
+  "title": "【歌詞】郭采潔 - 誠實地想你",
+  "channel": "拎拎拎",
+  "duration": "4:18",
+  "karaoke": false,
+  "duet": false,
+  "group": false
+ },
+ {
+  "lang": "台語",
+  "artist": "詹雅雯",
+  "song": "為著十萬元",
+  "videoId": "oIUJprzy17s",
+  "title": "為著十萬元-詹雅雯-(伴奏)悲恋・モルガンお雪",
+  "channel": "陸伯 Louis Tang",
+  "duration": "3:55",
+  "karaoke": true,
+  "duet": false,
+  "group": false
  }
 ]
