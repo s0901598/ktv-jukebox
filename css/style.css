@@ -490,7 +490,7 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
   color: var(--accent-2);
   font-size: calc(var(--u) * 1.8);
   font-weight: 700;
-  animation: marquee var(--dur, 15s) linear infinite;
+  animation: marquee var(--dur, 15s) linear 1 forwards;
 }
 @keyframes marquee { to { transform: translateX(-100%); } }
 

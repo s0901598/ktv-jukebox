@@ -58,7 +58,7 @@
   </div>
 
   <script type="module">
-    import { subscribe, finishSong, joinUrl, escapeHtml } from "./js/party.js";
+    import { subscribe, finishSong, setPaused, joinUrl, escapeHtml } from "./js/party.js";
     import { forget } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
@@ -91,6 +91,16 @@
           onReady: () => sync(),
           onStateChange: (e) => {
             if (e.data === YT_STATE.PLAYING) $("tap").hidden = true;
+            // 有人直接點播放端的影片暫停/播放時,也同步回派對狀態,點歌端的按鈕才會一致
+            if (loadedSongId && party?.queue[0]?.id === loadedSongId) {
+              if (e.data === YT_STATE.PLAYING && party.paused) {
+                lastPaused = false;
+                setPaused(code, false);
+              } else if (e.data === YT_STATE.PAUSED && !party.paused) {
+                lastPaused = true;
+                setPaused(code, true);
+              }
+            }
             if (e.data === YT_STATE.ENDED && loadedSongId) finishSong(code, loadedSongId);
           },
           onError: (e) => {
@@ -136,7 +146,17 @@
       }
       if (!!party.paused !== lastPaused) {
         lastPaused = !!party.paused;
-        lastPaused ? player.pauseVideo() : player.playVideo();
+        if (lastPaused) {
+          player.pauseVideo();
+        } else {
+          player.playVideo();
+          // 少數手機會擋下非點擊觸發的播放,沒播起來就請人在大螢幕點一下
+          const id = loadedSongId;
+          setTimeout(() => {
+            const st = player.getPlayerState();
+            if (loadedSongId === id && !party?.paused && st !== YT_STATE.PLAYING && st !== YT_STATE.BUFFERING) $("tap").hidden = false;
+          }, 2500);
+        }
       }
     }
 
@@ -151,16 +171,44 @@
     }
     $("side-toggle").addEventListener("click", () => setCollapsed(!collapsed));
 
-    function updateMarquee() {
+    // 跑馬燈:每首歌開始時跑一次,之後每 40 秒跑一次,跑完就隱藏
+    const MARQUEE_EVERY = 40000;
+    let marqueeTimer = null;
+    let marqueeSongId = null;
+
+    function marqueeText() {
       const next = party?.queue[1];
-      const show = collapsed && !!party?.queue[0] && !!next;
-      $("marquee").hidden = !show;
-      if (!show) return;
-      const text = `🎤 下一首:${next.title} · ${next.by} 點的,請準備!`;
+      return collapsed && party?.queue[0] && next ? `🎤 下一首:${next.title} · ${next.by} 點的,請準備!` : "";
+    }
+
+    function runMarquee() {
+      const text = marqueeText();
+      if (!text) return;
       const track = $("marquee-track");
-      if (track.textContent !== text) {
-        track.textContent = text; // 內容沒變就不重設,跑馬燈才不會一直從頭開始
-        track.style.setProperty("--dur", `${Math.max(12, text.length * 0.45)}s`);
+      track.textContent = text;
+      track.style.setProperty("--dur", `${Math.min(30, Math.max(12, text.length * 0.45))}s`);
+      track.style.animation = "none";
+      void track.offsetWidth; // 重設動畫,從右邊重新跑進來
+      track.style.animation = "";
+      $("marquee").hidden = false;
+    }
+    $("marquee-track").addEventListener("animationend", () => { $("marquee").hidden = true; });
+
+    function updateMarquee() {
+      const currentId = party?.queue[0]?.id || null;
+      if (!marqueeText()) {
+        clearInterval(marqueeTimer);
+        marqueeTimer = null;
+        marqueeSongId = null;
+        $("marquee").hidden = true;
+        return;
+      }
+      // 換歌(或剛收起)時重新計時:馬上跑一次,之後每 40 秒一次
+      if (!marqueeTimer || marqueeSongId !== currentId) {
+        marqueeSongId = currentId;
+        clearInterval(marqueeTimer);
+        runMarquee();
+        marqueeTimer = setInterval(runMarquee, MARQUEE_EVERY);
       }
     }
 
