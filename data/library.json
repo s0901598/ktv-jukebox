@@ -1263,9 +1263,9 @@
   "lang": "台語",
   "artist": "王識賢、孫淑媚",
   "song": "雲中月圓",
-  "videoId": "wE77XcVRQ4E",
-  "title": "雲中月圓-王識賢&孫淑媚(Karaoke伴奏)",
-  "channel": "古錐熊熊",
+  "videoId": "32TLkbV1Guw",
+  "title": "雲中月圓 王識賢.孫淑媚 合調 導唱無",
+  "channel": "音圓金嗓歡樂無限",
   "duration": "4:29",
   "karaoke": true,
   "duet": true,
@@ -1509,6 +1509,30 @@
   "duration": "6:56",
   "karaoke": true,
   "duet": true,
+  "group": false
+ },
+ {
+  "lang": "台語",
+  "artist": "黃乙玲、郭桂彬",
+  "song": "海波浪",
+  "videoId": "4EcGdPj5W0U",
+  "title": "(伴奏版)黃乙玲+郭桂彬-海波浪(DIY卡拉OK字幕)",
+  "channel": "Davidpinpun Huang",
+  "duration": "4:56",
+  "karaoke": true,
+  "duet": true,
+  "group": false
+ },
+ {
+  "lang": "台語",
+  "artist": "黃乙玲",
+  "song": "愛到才知痛",
+  "videoId": "6QFm16-Xnhk",
+  "title": "(伴奏版)黃乙玲-愛到才知痛(DIY卡拉OK字幕)",
+  "channel": "Davidpinpun Huang",
+  "duration": "4:46",
+  "karaoke": true,
+  "duet": false,
   "group": false
  }
 ]
