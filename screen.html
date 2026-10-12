@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="screen-body">
-  <div class="stage">
+  <div class="stage" id="stage">
     <div class="video-area">
       <div id="player"></div>
 
@@ -32,6 +32,11 @@
 
       <div class="toast" id="toast" hidden></div>
       <div class="paused-pill" id="paused" hidden>⏸ 暫停中</div>
+
+      <!-- 收起資訊欄時:上方跑馬燈顯示下一首、右上角小代碼 -->
+      <div class="marquee" id="marquee" hidden><div class="track" id="marquee-track"></div></div>
+      <div class="corner-code" id="corner-code" hidden>代碼 <b id="corner-code-num"></b></div>
+      <button class="side-toggle" id="side-toggle" type="button" aria-label="打開或收起右側資訊欄">▶</button>
     </div>
 
     <aside class="side">
@@ -64,6 +69,7 @@
     $("join-url").textContent = joinUrl(code);
     $("idle-code").textContent = code;
     $("idle-url").textContent = joinUrl(code);
+    $("corner-code-num").textContent = code;
 
     // ---------- YouTube 播放器 ----------
     const YT_STATE = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3, CUED: 5 };
@@ -112,10 +118,13 @@
       if (!current) {
         if (loadedSongId) player.stopVideo();
         loadedSongId = null;
+        setCollapsed(false); // 待機時打開資訊欄,讓新來的人看到代碼
         return;
       }
       if (current.id !== loadedSongId) {
         loadedSongId = current.id;
+        setCollapsed(true); // 每首歌開始時自動收起,影片放大
+
         lastPaused = false;
         player.loadVideoById(current.videoId);
         // 6 秒後還沒開始播,多半是瀏覽器擋自動播放,請人點一下
@@ -128,6 +137,30 @@
       if (!!party.paused !== lastPaused) {
         lastPaused = !!party.paused;
         lastPaused ? player.pauseVideo() : player.playVideo();
+      }
+    }
+
+    // ---------- 右側資訊欄收合、跑馬燈 ----------
+    let collapsed = false;
+    function setCollapsed(c) {
+      collapsed = c;
+      $("stage").classList.toggle("collapsed", c);
+      $("side-toggle").textContent = c ? "◀" : "▶";
+      $("corner-code").hidden = !c;
+      updateMarquee();
+    }
+    $("side-toggle").addEventListener("click", () => setCollapsed(!collapsed));
+
+    function updateMarquee() {
+      const next = party?.queue[1];
+      const show = collapsed && !!party?.queue[0] && !!next;
+      $("marquee").hidden = !show;
+      if (!show) return;
+      const text = `🎤 下一首:${next.title} · ${next.by} 點的,請準備!`;
+      const track = $("marquee-track");
+      if (track.textContent !== text) {
+        track.textContent = text; // 內容沒變就不重設,跑馬燈才不會一直從頭開始
+        track.style.setProperty("--dur", `${Math.max(12, text.length * 0.45)}s`);
       }
     }
 
@@ -205,6 +238,7 @@
       showNotice(p.notice);
       $("paused").hidden = !(p.paused && current);
       sync();
+      updateMarquee();
     });
   </script>
 </body>
