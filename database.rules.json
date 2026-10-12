@@ -7,6 +7,20 @@
         ".read": true,
         ".write": "$code.matches(/^[0-9]{4}$/)"
       }
+    },
+    "searchCache": {
+      "$key": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['t'])"
+      }
+    },
+    "quota": {
+      "exhaustedDay": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.isString() && newData.val().length <= 10"
+      }
     }
   }
 }

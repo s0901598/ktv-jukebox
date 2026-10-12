@@ -44,7 +44,7 @@ button, input { font: inherit; }
 
 label { display: block; color: var(--muted); margin: 12px 0 6px; }
 
-input[type="text"], input[type="tel"], input[type="url"] {
+input[type="text"], input[type="tel"], input[type="url"], input[type="search"] {
   width: 100%;
   padding: 14px 16px;
   border-radius: 12px;
@@ -109,6 +109,53 @@ input.code-input { font-size: 32px; letter-spacing: 0.4em; text-align: center; }
 
 .now-playing { border: 2px solid var(--accent); }
 .empty { color: var(--muted); text-align: center; padding: 12px 0; }
+
+
+/* ---------- 搜尋 ---------- */
+.search-row { display: flex; gap: 10px; }
+.search-row input { flex: 1; min-width: 0; }
+.search-row .btn { width: auto; margin-top: 0; padding: 0 22px; flex: none; }
+input[type="search"] {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 2px solid var(--panel-2);
+  background: #0d0817;
+  color: var(--text);
+  font-size: 20px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.results:not(:empty) { margin-top: 8px; }
+.results img { width: 88px; }
+.results .info { flex: 1; }
+.badge {
+  display: inline-block;
+  background: var(--accent-2);
+  color: #2a1a00;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  margin-right: 4px;
+}
+.pick {
+  flex: none;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  padding: 12px 14px;
+  min-width: 72px;
+  cursor: pointer;
+}
+.pick.done { background: var(--ok); color: #062b1a; }
+.yt-link { text-align: center; text-decoration: none; font-size: 18px; }
+
+.paste-card summary { font-size: 19px; font-weight: 700; cursor: pointer; }
+.paste-card[open] summary { margin-bottom: 8px; }
 
 /* ---------- 大螢幕(橫版 16:9) ---------- */
 body.screen-body {

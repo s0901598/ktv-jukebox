@@ -14,13 +14,24 @@
     </div>
 
     <section class="card">
-      <h2>貼上 YouTube 連結點歌</h2>
+      <h2>🔍 搜尋歌曲</h2>
+      <form id="search-form" autocomplete="off" class="search-row">
+        <input id="keyword" type="search" enterkeyhint="search" placeholder="歌名或歌手" required>
+        <button class="btn" type="submit">搜尋</button>
+      </form>
+      <div class="msg" id="search-msg"></div>
+      <ul class="song-list results" id="results"></ul>
+      <a class="btn secondary yt-link" id="yt-link" href="https://www.youtube.com/" target="_blank" rel="noopener">到 YouTube 找(不限次數)</a>
+    </section>
+
+    <details class="card paste-card" id="paste-card">
+      <summary>貼上 YouTube 連結點歌</summary>
       <form id="add-form" autocomplete="off">
         <input id="link" type="text" inputmode="url" placeholder="https://youtu.be/..." required>
         <button class="btn" type="submit">點歌</button>
         <div class="msg" id="add-msg"></div>
       </form>
-    </section>
+    </details>
 
     <section class="card now-playing">
       <h2>🎵 正在播放</h2>
@@ -35,6 +46,7 @@
 
   <script type="module">
     import { subscribe, addSong, parseYouTubeId, fetchTitle, escapeHtml } from "./js/party.js";
+    import { searchSongs, youtubeSearchUrl, QuotaExceededError } from "./js/youtube.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
@@ -67,6 +79,67 @@
         : `<li class="empty">清單是空的,快來點歌</li>`;
     });
 
+    // ---------- 搜尋 ----------
+    let results = [];
+
+    $("keyword").addEventListener("input", () => {
+      const q = $("keyword").value.trim();
+      $("yt-link").href = q ? youtubeSearchUrl(q) : "https://www.youtube.com/";
+    });
+
+    $("search-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const q = $("keyword").value.trim();
+      const msg = $("search-msg");
+      const btn = e.submitter;
+      $("keyword").blur(); // 收起手機鍵盤,才看得到結果
+      btn.disabled = true;
+      msg.className = "msg ok";
+      msg.textContent = "搜尋中…";
+      $("results").innerHTML = "";
+      try {
+        results = await searchSongs(q);
+        msg.textContent = results.length ? "" : "找不到相關的歌,換個關鍵字試試";
+        $("results").innerHTML = results.map((s, i) => `
+          <li>
+            <img src="https://i.ytimg.com/vi/${encodeURIComponent(s.videoId)}/mqdefault.jpg" alt="" loading="lazy">
+            <div class="info">
+              <div class="title">${escapeHtml(s.title)}</div>
+              <div class="by">
+                ${s.karaoke ? `<span class="badge">🎤 伴唱版</span>` : ""}
+                ${s.duration ? escapeHtml(s.duration) + " · " : ""}${escapeHtml(s.channel)}
+              </div>
+            </div>
+            <button class="pick" data-i="${i}">點歌</button>
+          </li>`).join("");
+      } catch (err) {
+        msg.className = "msg";
+        msg.textContent = err.message || "搜尋失敗,請稍後再試";
+        if (err instanceof QuotaExceededError) $("paste-card").open = true;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $("results").addEventListener("click", async (e) => {
+      const btn = e.target.closest(".pick");
+      if (!btn || btn.disabled) return;
+      const s = results[btn.dataset.i];
+      btn.disabled = true;
+      btn.textContent = "…";
+      try {
+        await addSong(code, { videoId: s.videoId, title: s.title, by: name });
+        btn.textContent = "已點 ✓";
+        btn.classList.add("done");
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "點歌";
+        $("search-msg").className = "msg";
+        $("search-msg").textContent = err.message || "點歌失敗,請再試一次";
+      }
+    });
+
+    // ---------- 貼連結 ----------
     $("add-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const msg = $("add-msg");

@@ -8,7 +8,7 @@ import {
 import { firebaseConfig } from "./config.js";
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+export const db = getDatabase(app);
 
 const partyRef = (code) => ref(db, `parties/${code}`);
 
