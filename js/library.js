@@ -24,16 +24,21 @@ export async function loadLibrary() {
 const SIMPLIFIED = { "爱": "愛", "里": "裡", "干": "乾", "梦": "夢", "见": "見", "别": "別", "温": "溫", "伤": "傷", "说": "說", "乐": "樂", "风": "風", "听": "聽", "难": "難", "过": "過", "双": "雙", "恋": "戀", "泪": "淚", "后": "後", "来": "來", "长": "長", "这": "這", "时": "時", "为": "為", "们": "們", "么": "麼", "飞": "飛", "凤": "鳳", "邓": "鄧", "丽": "麗", "叶": "葉", "陈": "陳", "张": "張", "刘": "劉", "黄": "黃", "伦": "倫", "杰": "傑" };
 const fold = (s) => normalize(s).replace(/./g, (c) => SIMPLIFIED[c] || c).replace(/\s+/g, "");
 
-export async function searchLibrary(query) {
+// 歌庫篩選:category = all / 國語 / 台語 / duet;query 空白就列出該分類全部
+export async function filterLibrary(query = "", category = "all") {
   const terms = normalize(query).split(" ").map(fold).filter(Boolean);
-  if (!terms.length) return [];
   const songs = await loadLibrary();
   return songs
+    .filter((s) => category === "all" || (category === "duet" ? s.duet : s.lang === category))
     .filter((s) => {
       const hay = fold(`${s.artist || ""}${s.song || ""}${s.title}${s.duet ? "對唱合唱" : ""}`);
       return terms.every((t) => hay.includes(t));
     })
     .map((s) => ({ ...s, fromLibrary: true }));
+}
+
+export async function searchLibrary(query) {
+  return normalize(query) ? filterLibrary(query) : [];
 }
 
 // 清單上顯示的歌名:「歌名(歌手)」,讓大家知道是哪個版本

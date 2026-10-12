@@ -91,7 +91,7 @@
             if (UNPLAYABLE.includes(e.data) && loadedSongId) {
               const bad = party?.queue[0]; // 先記下來,finishSong 會立刻更新本地的 party
               if (bad?.id === loadedSongId) forget(bad.videoId);
-              finishSong(code, loadedSongId, "「{title}」無法播放,已自動跳過");
+              finishSong(code, loadedSongId, { result: "unplayable", notice: "「{title}」無法播放,已自動跳過" });
             }
           },
         },

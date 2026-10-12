@@ -13,8 +13,26 @@
       <span>我是 <b id="name-label"></b></span>
     </div>
 
-    <!-- ===== 點歌 ===== -->
-    <div id="view-search">
+    <!-- ===== 歌庫 ===== -->
+    <div id="view-library">
+      <section class="card">
+        <h2>📚 歌庫 <small id="lib-count"></small></h2>
+        <input id="lib-filter" type="search" placeholder="輸入歌名或歌手,馬上篩選" autocomplete="off">
+        <div class="chips" id="lib-chips">
+          <button data-cat="all" class="active">全部</button>
+          <button data-cat="國語">國語</button>
+          <button data-cat="台語">台語</button>
+          <button data-cat="duet">👫 對唱</button>
+        </div>
+        <ul class="song-list" id="lib-list"></ul>
+        <div id="lib-empty" class="empty" hidden>
+          歌庫裡沒有,<button class="btn secondary" id="lib-to-search" type="button">到「搜尋」找 YouTube</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== 搜尋(歌庫 + YouTube) ===== -->
+    <div id="view-search" hidden>
       <section class="card">
         <h2>🔍 搜尋歌曲</h2>
         <form id="search-form" autocomplete="off" class="search-row">
@@ -40,7 +58,7 @@
       </details>
     </div>
 
-    <!-- ===== 播放中 ===== -->
+    <!-- ===== 待播放 ===== -->
     <div id="view-queue" hidden>
       <section class="card now-playing">
         <h2>🎵 正在播放</h2>
@@ -56,11 +74,21 @@
         <ul class="song-list" id="queue"></ul>
       </section>
     </div>
+
+    <!-- ===== 已播放 ===== -->
+    <div id="view-history" hidden>
+      <section class="card">
+        <h2>🕘 已播放</h2>
+        <ul class="song-list" id="history"></ul>
+      </section>
+    </div>
   </main>
 
-  <nav class="tabbar">
-    <button id="tab-search" class="active">🔍 點歌</button>
-    <button id="tab-queue">🎵 播放中 <span id="queue-count"></span></button>
+  <nav class="tabbar" id="tabbar">
+    <button data-tab="library" class="active"><span class="ic">📚</span>歌庫</button>
+    <button data-tab="search"><span class="ic">🔍</span>搜尋</button>
+    <button data-tab="queue"><span class="ic">🎵</span>待播放<span class="count" id="queue-count"></span></button>
+    <button data-tab="history"><span class="ic">🕘</span>已播放</button>
   </nav>
 
   <div class="toast-m" id="toast" hidden>
@@ -74,7 +102,7 @@
       parseYouTubeId, fetchTitle, escapeHtml,
     } from "./js/party.js";
     import { searchSongs, youtubeSearchUrl, QuotaExceededError } from "./js/youtube.js";
-    import { searchLibrary, collect, displayTitle, guessArtist } from "./js/library.js";
+    import { searchLibrary, filterLibrary, loadLibrary, collect, displayTitle, guessArtist } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
@@ -85,15 +113,16 @@
     $("name-label").textContent = name;
 
     // ---------- 分頁切換 ----------
+    const TABS = ["library", "search", "queue", "history"];
     function showTab(tab) {
-      $("view-search").hidden = tab !== "search";
-      $("view-queue").hidden = tab !== "queue";
-      $("tab-search").classList.toggle("active", tab === "search");
-      $("tab-queue").classList.toggle("active", tab === "queue");
+      for (const t of TABS) $(`view-${t}`).hidden = t !== tab;
+      for (const b of $("tabbar").children) b.classList.toggle("active", b.dataset.tab === tab);
       scrollTo(0, 0);
     }
-    $("tab-search").addEventListener("click", () => showTab("search"));
-    $("tab-queue").addEventListener("click", () => showTab("queue"));
+    $("tabbar").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-tab]");
+      if (b) showTab(b.dataset.tab);
+    });
     $("toast-go").addEventListener("click", () => { $("toast").hidden = true; showTab("queue"); });
 
     // ---------- 提示 ----------
@@ -148,7 +177,8 @@
       $("queue").innerHTML = rest.length
         ? rest.map((s, i) => queueRow(s, i + 1)).join("")
         : `<li class="empty">清單是空的,快來點歌</li>`;
-      $("queue-count").textContent = p.queue.length ? `(${p.queue.length})` : "";
+      $("queue-count").textContent = p.queue.length ? p.queue.length : "";
+      renderHistory();
     });
 
     $("pause-btn").addEventListener("click", () => {
@@ -182,22 +212,50 @@
       $("yt-link").href = q ? youtubeSearchUrl(q) : "https://www.youtube.com/";
     });
 
-    const resultRow = (s, i) => `
+    // 可以點歌/插播的歌曲列(歌庫、搜尋結果、已播放共用)
+    const pickRow = (s, i, extra = "") => `
       <li>
         <img src="https://i.ytimg.com/vi/${encodeURIComponent(s.videoId)}/mqdefault.jpg" alt="" loading="lazy">
         <div class="info">
           <div class="title">${escapeHtml(s.song || s.title)}</div>
           ${s.artist ? `<div class="singer">🎙 ${escapeHtml(s.artist)} 演唱</div>` : ""}
-          <div class="by">
+          ${extra || `<div class="by">
             ${s.fromLibrary ? `<span class="badge lib">⭐ 歌庫</span>` : ""}${s.duet ? `<span class="badge duet">👫 對唱</span>` : ""}${s.karaoke ? `<span class="badge">🎤 伴唱版</span>` : ""}
             ${[s.duration, s.lang, !s.artist && s.channel ? `頻道:${s.channel}` : ""].filter(Boolean).map(escapeHtml).join(" · ")}
-          </div>
+          </div>`}
         </div>
         <div class="pick-col">
           <button class="pick" data-i="${i}" data-mode="add">點歌</button>
           <button class="pick alt" data-i="${i}" data-mode="next">插播</button>
         </div>
       </li>`;
+    const resultRow = (s, i) => pickRow(s, i);
+
+    // 每個清單點「點歌/插播」的共用處理;getList 回傳該清單目前的歌曲陣列
+    function bindPicks(ul, getList) {
+      ul.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".pick");
+        if (!btn || btn.disabled) return;
+        const s = getList()[btn.dataset.i];
+        if (!s) return;
+        const next = btn.dataset.mode === "next";
+        const pair = btn.parentElement.querySelectorAll(".pick");
+        pair.forEach((b) => { b.disabled = true; });
+        btn.textContent = "…";
+        try {
+          const title = displayTitle(s);
+          const { position } = await addSong(code, { videoId: s.videoId, title, by: name }, { next });
+          collect(s);
+          btn.textContent = next ? "已插播 ✓" : "已點 ✓";
+          btn.classList.add("done");
+          toast(`已${next ? "插播" : "點歌"}:${title},${placeText(position)}`, { go: true });
+        } catch (err) {
+          pair.forEach((b) => { b.disabled = false; });
+          btn.textContent = next ? "插播" : "點歌";
+          toast(err.message || "點歌失敗,請再試一次");
+        }
+      });
+    }
 
     const render = () => { $("results").innerHTML = results.map(resultRow).join(""); };
 
@@ -236,31 +294,57 @@
         $("yt-more").hidden = false;
         $("yt-more").onclick = () => searchYouTube(q, $("yt-more"));
       } else {
-        await searchYouTube(q, e.submitter);
+        await searchYouTube(q, e.submitter || e.target.querySelector("button"));
       }
     });
 
-    $("results").addEventListener("click", async (e) => {
-      const btn = e.target.closest(".pick");
-      if (!btn || btn.disabled) return;
-      const s = results[btn.dataset.i];
-      const next = btn.dataset.mode === "next";
-      const pair = btn.parentElement.querySelectorAll(".pick");
-      pair.forEach((b) => { b.disabled = true; });
-      btn.textContent = "…";
-      try {
-        const { position } = await addSong(code, { videoId: s.videoId, title: displayTitle(s), by: name }, { next });
-        collect(s);
-        btn.textContent = next ? "已插播 ✓" : "已點 ✓";
-        btn.classList.add("done");
-        toast(`已${next ? "插播" : "點歌"}:${displayTitle(s)},${placeText(position)}`, { go: true });
-      } catch (err) {
-        pair.forEach((b) => { b.disabled = false; });
-        btn.textContent = next ? "插播" : "點歌";
-        $("search-msg").className = "msg";
-        $("search-msg").textContent = err.message || "點歌失敗,請再試一次";
-      }
+    bindPicks($("results"), () => results);
+
+    // ---------- 歌庫 ----------
+    let libSongs = [];
+    let libCat = "all";
+    async function renderLibrary() {
+      const q = $("lib-filter").value;
+      libSongs = await filterLibrary(q, libCat);
+      // 歌庫分頁裡每首都是歌庫的歌,不用再標「⭐ 歌庫」
+      $("lib-list").innerHTML = libSongs.map((s, i) => pickRow({ ...s, fromLibrary: false }, i)).join("");
+      $("lib-empty").hidden = libSongs.length > 0;
+      $("lib-count").textContent = q.trim() || libCat !== "all" ? `${libSongs.length} 首` : `共 ${libSongs.length} 首`;
+    }
+    let libTimer = null;
+    $("lib-filter").addEventListener("input", () => {
+      clearTimeout(libTimer);
+      libTimer = setTimeout(renderLibrary, 150);
     });
+    $("lib-filter").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+    $("lib-chips").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-cat]");
+      if (!b) return;
+      libCat = b.dataset.cat;
+      for (const c of $("lib-chips").children) c.classList.toggle("active", c === b);
+      renderLibrary();
+    });
+    $("lib-to-search").addEventListener("click", () => {
+      $("keyword").value = $("lib-filter").value.trim();
+      $("keyword").dispatchEvent(new Event("input"));
+      showTab("search");
+      if ($("keyword").value) $("search-form").requestSubmit();
+    });
+    bindPicks($("lib-list"), () => libSongs);
+    loadLibrary().then(renderLibrary);
+
+    // ---------- 已播放 ----------
+    let historyList = [];
+    const RESULT_TEXT = { done: "✅ 唱完", skipped: "⏭ 被切掉", unplayable: "⚠️ 無法播放" };
+    const hhmm = (t) => new Date(t).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false });
+    function renderHistory() {
+      historyList = [...(party?.history || [])].reverse();
+      $("history").innerHTML = historyList.length
+        ? historyList.map((s, i) => pickRow(s, i, `<div class="by">${escapeHtml(s.by)} 點的 · ${hhmm(s.endedAt)}<br>${
+            RESULT_TEXT[s.result] || ""}${s.result === "skipped" && s.endedBy ? `(${escapeHtml(s.endedBy)})` : ""}</div>`)).join("")
+        : `<li class="empty">還沒有唱完的歌</li>`;
+    }
+    bindPicks($("history"), () => historyList);
 
     // ---------- 貼連結 ----------
     $("add-form").addEventListener("submit", async (e) => {

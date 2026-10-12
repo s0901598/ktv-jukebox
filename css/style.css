@@ -393,3 +393,44 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
   .song-list li { gap: 8px; }
   .mini, .pick-col .pick { padding: 8px 9px; font-size: 15px; }
 }
+
+/* ---------- 四個分頁、歌庫分類 ---------- */
+.tabbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 15px;
+  padding: 10px 2px 12px;
+  position: relative;
+}
+.tabbar .ic { font-size: 22px; line-height: 1.1; }
+.tabbar .count:not(:empty) {
+  position: absolute;
+  top: 4px;
+  left: calc(50% + 10px);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  line-height: 22px;
+}
+.card h2 small { color: var(--muted); font-size: 15px; font-weight: 400; margin-left: 6px; }
+
+.chips { display: flex; gap: 6px; margin: 12px 0 4px; }
+.chips button {
+  border: 2px solid var(--panel-2);
+  background: none;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 0;
+  flex: 1;
+  font-size: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chips button.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+#lib-empty .btn { margin-top: 10px; }

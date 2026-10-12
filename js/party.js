@@ -50,7 +50,7 @@ export async function partyExists(code) {
 export function subscribe(code, callback) {
   return onValue(partyRef(code), (snap) => {
     const p = snap.val();
-    callback(p ? { ...p, queue: toList(p.queue) } : null);
+    callback(p ? { ...p, queue: toList(p.queue), history: toList(p.history) } : null);
   });
 }
 
@@ -72,20 +72,25 @@ export async function addSong(code, song, { next = false } = {}) {
 
 // 以下操作都帶歌曲 ID:目標已經不在原位(別人先按了)就不動,30 人同時按也只會生效一次。
 
-// 一首歌結束換下一首:播完、無法播放、切歌都走這裡
-export async function finishSong(code, songId, notice) {
+// 一首歌結束換下一首:播完、無法播放、切歌都走這裡,並記到「已播放」
+// result:done = 唱完,skipped = 被切掉,unplayable = 無法播放
+const HISTORY_MAX = 300;
+export async function finishSong(code, songId, { result = "done", by = "", notice = "" } = {}) {
   return runTransaction(partyRef(code), (p) => {
     if (!p) return p;
     const queue = toList(p.queue);
     if (queue[0]?.id !== songId) return; // 已經換過了,不動
     const [done] = queue.splice(0, 1);
-    const next = { ...p, queue, paused: false };
+    const history = [...toList(p.history), { ...done, result, endedAt: Date.now(), ...(by ? { endedBy: by } : {}) }]
+      .slice(-HISTORY_MAX);
+    const next = { ...p, queue, history, paused: false };
     if (notice) next.notice = { text: notice.replace("{title}", done.title), at: Date.now() };
     return next;
   });
 }
 
-export const skipSong = (code, songId, by) => finishSong(code, songId, `${by} 切掉了「{title}」`);
+export const skipSong = (code, songId, by) =>
+  finishSong(code, songId, { result: "skipped", by, notice: `${by} 切掉了「{title}」` });
 
 // 已在排隊的歌插播到下一首
 export async function moveToNext(code, songId) {
