@@ -3,8 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- 加入主畫面後像 App 一樣全畫面開啟 -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KTV點唱機">
+  <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
   <link rel="stylesheet" href="css/style.css">
   <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
@@ -37,7 +43,11 @@
       <!-- 收起資訊欄時:上方跑馬燈顯示下一首、右上角小代碼 -->
       <div class="marquee" id="marquee" hidden><div class="track" id="marquee-track"></div></div>
       <div class="corner-code" id="corner-code" hidden>代碼 <b id="corner-code-num"></b></div>
-      <button class="side-toggle" id="side-toggle" type="button" aria-label="打開或收起右側資訊欄">▶</button>
+      <!-- 右側控制鈕:至少 48px、離邊緣有距離,手指才按得到 -->
+      <div class="screen-controls">
+        <button class="ctrl-btn" id="fs-btn" type="button" aria-label="全螢幕">⛶</button>
+        <button class="ctrl-btn" id="side-toggle" type="button" aria-label="打開或收起右側資訊欄">▶</button>
+      </div>
     </div>
 
     <aside class="side">
@@ -57,6 +67,25 @@
       <div class="status" id="status"></div>
       <button class="theme-toggle" data-theme-toggle type="button">🌙</button>
     </aside>
+  </div>
+
+  <!-- 直向拿著時提示轉橫向 -->
+  <div class="rotate-hint" id="rotate-hint">
+    <div class="rotate-icon">📱</div>
+    <div>請把手機轉成橫向</div>
+  </div>
+
+  <!-- iPhone 不支援網頁全螢幕時的說明 -->
+  <div class="fs-guide" id="fs-guide" hidden>
+    <div class="fs-guide-card">
+      <h2>iPhone 要這樣變全螢幕</h2>
+      <p class="fs-guide-note">Apple 不允許網頁直接進入全螢幕,可以用下面任一種方法:</p>
+      <ol>
+        <li><b>隱藏工具列(最快)</b><br>點網址列左邊的「<b>aA</b>」或頁面選單圖示,選「<b>隱藏工具列</b>」。網址列和分頁會收起來,點畫面最上方或最下方可以叫回來。</li>
+        <li><b>加入主畫面</b><br>點下方的「<b>分享</b>」(方框加向上箭頭的圖示)→「<b>加入主畫面</b>」,之後從桌面的「KTV點唱機」圖示打開,就完全沒有網址列。</li>
+      </ol>
+      <button class="btn" id="fs-guide-close" type="button">知道了</button>
+    </div>
   </div>
 
   <script type="module" src="js/theme.js"></script>
@@ -232,6 +261,28 @@
       player?.playVideo();
       $("tap").hidden = true;
     });
+
+    // ---------- 全螢幕按鈕 ----------
+    const isStandalone = navigator.standalone || matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches;
+    if (isStandalone) $("fs-btn").hidden = true; // 從主畫面圖示開啟時已經是全畫面
+    const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+    $("fs-btn").addEventListener("click", async () => {
+      if (!canFullscreen) {
+        $("fs-guide").hidden = false; // iPhone:顯示替代方法
+        return;
+      }
+      if (fsElement()) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        await enterFullscreen();
+        // 瀏覽器表面上支援、實際上沒進入全螢幕(部分 iPhone)時,也改顯示說明
+        setTimeout(() => { if (!fsElement()) $("fs-guide").hidden = false; }, 600);
+      }
+    });
+    $("fs-guide-close").addEventListener("click", () => { $("fs-guide").hidden = true; });
+    const refreshFsBtn = () => { $("fs-btn").textContent = fsElement() ? "✕" : "⛶"; };
+    document.addEventListener("fullscreenchange", refreshFsBtn);
+    document.addEventListener("webkitfullscreenchange", refreshFsBtn);
 
     async function enterFullscreen() {
       const el = document.documentElement;

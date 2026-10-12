@@ -1,0 +1,13 @@
+{
+  "name": "KTV 點唱機",
+  "short_name": "KTV點唱機",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "background_color": "#fff6ef",
+  "theme_color": "#d93c45",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

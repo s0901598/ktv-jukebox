@@ -3,6 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- 加入主畫面後像 App 一樣全畫面開啟 -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KTV點唱機">
+  <meta name="theme-color" content="#d93c45">
   <title>點歌 - KTV 點唱機</title>
   <link rel="stylesheet" href="css/style.css">
   <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
