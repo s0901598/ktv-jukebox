@@ -53,6 +53,7 @@
 
   <script type="module">
     import { subscribe, finishSong, joinUrl, escapeHtml } from "./js/party.js";
+    import { forget } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
@@ -87,6 +88,8 @@
           },
           onError: (e) => {
             if (UNPLAYABLE.includes(e.data) && loadedSongId) {
+              const bad = party?.queue[0]; // 先記下來,finishSong 會立刻更新本地的 party
+              if (bad?.id === loadedSongId) forget(bad.videoId);
               finishSong(code, loadedSongId, "無法播放,已自動跳過");
             }
           },

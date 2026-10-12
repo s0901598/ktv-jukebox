@@ -2,7 +2,7 @@
 // 來源有兩個:
 // 1. data/library.json — 事先整理好的經典歌單(tools/build_library.py 產生)
 // 2. Firebase library/ — 有人點過的歌自動收進來
-import { ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { ref, get, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { db } from "./party.js";
 import { normalize, isKaraoke } from "./youtube.js";
 
@@ -67,4 +67,10 @@ export function collect(song) {
   };
   if (cache && !cache.some((s) => s.videoId === song.videoId)) cache.push(entry);
   return update(ref(db, `library/${song.videoId}`), entry).catch(() => {});
+}
+
+// 放不出來的影片從自動收錄的歌庫移除,下次就不會再被點到
+export function forget(videoId) {
+  if (cache) cache = cache.filter((s) => s.curated || s.videoId !== videoId);
+  return remove(ref(db, `library/${videoId}`)).catch(() => {});
 }
