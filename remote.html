@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>點歌 - KTV 點唱機</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="mobile">
+    <div class="topbar">
+      <span>派對 <strong id="code-label"></strong></span>
+      <span>我是 <b id="name-label"></b></span>
+    </div>
+
+    <section class="card">
+      <h2>貼上 YouTube 連結點歌</h2>
+      <form id="add-form" autocomplete="off">
+        <input id="link" type="text" inputmode="url" placeholder="https://youtu.be/..." required>
+        <button class="btn" type="submit">點歌</button>
+        <div class="msg" id="add-msg"></div>
+      </form>
+    </section>
+
+    <section class="card now-playing">
+      <h2>🎵 正在播放</h2>
+      <ul class="song-list" id="now"></ul>
+    </section>
+
+    <section class="card">
+      <h2>接下來</h2>
+      <ul class="song-list" id="queue"></ul>
+    </section>
+  </main>
+
+  <script type="module">
+    import { subscribe, addSong, parseYouTubeId, fetchTitle, escapeHtml } from "./js/party.js";
+
+    const $ = (id) => document.getElementById(id);
+    const code = new URLSearchParams(location.search).get("code") || "";
+    const name = localStorage.getItem("ktv-name");
+    if (!/^[0-9]{4}$/.test(code) || !name) location.replace(`./?code=${code}`);
+
+    $("code-label").textContent = code;
+    $("name-label").textContent = name;
+
+    const songRow = (s, num) => `
+      <li>
+        ${num ? `<span class="num">${num}</span>` : ""}
+        <img src="https://i.ytimg.com/vi/${encodeURIComponent(s.videoId)}/mqdefault.jpg" alt="">
+        <div class="info">
+          <div class="title">${escapeHtml(s.title)}</div>
+          <div class="by">${escapeHtml(s.by)} 點的</div>
+        </div>
+      </li>`;
+
+    subscribe(code, (party) => {
+      if (!party) {
+        $("now").innerHTML = `<li class="empty">派對已不存在</li>`;
+        $("queue").innerHTML = "";
+        return;
+      }
+      const [current, ...rest] = party.queue;
+      $("now").innerHTML = current ? songRow(current) : `<li class="empty">還沒有人點歌</li>`;
+      $("queue").innerHTML = rest.length
+        ? rest.map((s, i) => songRow(s, i + 1)).join("")
+        : `<li class="empty">清單是空的,快來點歌</li>`;
+    });
+
+    $("add-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = $("add-msg");
+      const videoId = parseYouTubeId($("link").value);
+      if (!videoId) {
+        msg.className = "msg";
+        msg.textContent = "看不懂這個連結,請貼 YouTube 影片網址";
+        return;
+      }
+      const btn = e.submitter;
+      btn.disabled = true;
+      msg.className = "msg ok";
+      msg.textContent = "點歌中…";
+      try {
+        const title = await fetchTitle(videoId);
+        await addSong(code, { videoId, title, by: name });
+        msg.textContent = `已點歌:${title}`;
+        $("link").value = "";
+      } catch (err) {
+        msg.className = "msg";
+        msg.textContent = err.message || "點歌失敗,請再試一次";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

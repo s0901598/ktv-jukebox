@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>大螢幕 - KTV 點唱機</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="screen-body">
+  <div class="stage">
+    <div class="video-area" id="video-area"></div>
+
+    <aside class="side">
+      <div class="code-box">
+        <div class="code-label">派對代碼</div>
+        <div class="code" id="code"></div>
+        <div class="join-url" id="join-url"></div>
+      </div>
+      <div>
+        <h3>🎵 正在播放</h3>
+        <div class="now" id="now"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;flex:1;min-height:0">
+        <h3>接下來</h3>
+        <ul class="queue" id="queue"></ul>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module">
+    import { subscribe, joinUrl, escapeHtml } from "./js/party.js";
+
+    const $ = (id) => document.getElementById(id);
+    const code = new URLSearchParams(location.search).get("code") || "";
+    if (!/^[0-9]{4}$/.test(code)) location.replace("./");
+
+    $("code").textContent = code;
+    $("join-url").textContent = joinUrl(code);
+
+    subscribe(code, (party) => {
+      if (!party) {
+        $("video-area").innerHTML = `<div class="idle"><div class="big">派對不存在</div></div>`;
+        return;
+      }
+      const [current, ...rest] = party.queue;
+
+      // 階段 1:先顯示清單;階段 2 會在 video-area 放 YouTube 播放器
+      $("video-area").innerHTML = current
+        ? `<div class="idle"><div class="big">${escapeHtml(current.title)}</div><div>(影片播放功能在階段 2 加入)</div></div>`
+        : `<div class="idle"><div class="big">輸入代碼 <span class="code">${code}</span> 快來點歌</div><div>${escapeHtml(joinUrl(code))}</div></div>`;
+
+      $("now").innerHTML = current
+        ? `${escapeHtml(current.title)}<div class="by">${escapeHtml(current.by)} 點的</div>`
+        : `<span class="by">還沒有人點歌</span>`;
+
+      $("queue").innerHTML = rest.length
+        ? rest.map((s, i) => `<li><span class="num">${i + 1}</span>${escapeHtml(s.title)} <span class="by">· ${escapeHtml(s.by)}</span></li>`).join("")
+        : `<li class="by">清單是空的</li>`;
+    });
+  </script>
+</body>
+</html>

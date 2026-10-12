@@ -1,0 +1,12 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "parties": {
+      "$code": {
+        ".read": true,
+        ".write": "$code.matches(/^[0-9]{4}$/)"
+      }
+    }
+  }
+}

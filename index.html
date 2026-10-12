@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>KTV 點唱機</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="mobile">
+    <h1>🎤 KTV 點唱機</h1>
+
+    <section class="card">
+      <h2>加入派對點歌</h2>
+      <form id="join-form" autocomplete="off">
+        <label for="code">派對代碼(4 位數字)</label>
+        <input id="code" class="code-input" type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required>
+        <label for="name">你的暱稱</label>
+        <input id="name" type="text" maxlength="12" placeholder="例如:小美、二舅" required>
+        <button class="btn" type="submit">加入</button>
+        <div class="msg" id="join-msg"></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>我是播放端(接投影機的手機)</h2>
+      <button class="btn secondary" id="create-btn">建立派對</button>
+      <div class="msg" id="create-msg"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createParty, partyExists } from "./js/party.js";
+
+    const $ = (id) => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+
+    $("name").value = localStorage.getItem("ktv-name") || "";
+    if (params.get("code")) $("code").value = params.get("code");
+    ($("code").value ? $("name") : $("code")).focus();
+
+    $("join-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const code = $("code").value.trim();
+      const name = $("name").value.trim();
+      const btn = e.submitter;
+      btn.disabled = true;
+      $("join-msg").textContent = "";
+      try {
+        if (!(await partyExists(code))) {
+          $("join-msg").textContent = "找不到這個派對,請確認代碼";
+          return;
+        }
+        localStorage.setItem("ktv-name", name);
+        location.href = `remote.html?code=${code}`;
+      } catch (err) {
+        $("join-msg").textContent = "連線失敗,請檢查網路後再試一次";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $("create-btn").addEventListener("click", async (e) => {
+      e.target.disabled = true;
+      $("create-msg").textContent = "建立中…";
+      $("create-msg").className = "msg ok";
+      try {
+        const code = await createParty();
+        location.href = `screen.html?code=${code}`;
+      } catch (err) {
+        $("create-msg").className = "msg";
+        $("create-msg").textContent = err.message || "建立失敗,請再試一次";
+        e.target.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
