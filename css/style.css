@@ -680,3 +680,13 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
   cursor: pointer;
 }
 .side-tool.danger { background: var(--danger); color: var(--on-accent); }
+
+/* ---------- 拖動鎖定:手指拖不會把整頁拉走,但可以雙指縮放 ---------- */
+html { overscroll-behavior: none; }
+body { overscroll-behavior: none; }
+/* 大螢幕:完全不能拖,只能雙指縮放 */
+html:has(body.no-drag), body.no-drag { touch-action: pinch-zoom; overflow: hidden; }
+/* 首頁、點歌頁:只能上下捲動(歌單很長)和雙指縮放,不能左右拖 */
+body.scroll-y { touch-action: pan-y pinch-zoom; overflow-x: hidden; }
+/* 分類按鈕列本身要能左右滑 */
+.chips { touch-action: pan-x pinch-zoom; }

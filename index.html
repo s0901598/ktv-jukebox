@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610130928">
+  <link rel="stylesheet" href="css/style.css?v=202610131026">
   <script>
     // 從 LINE 點開時,改用 Safari(外部瀏覽器)開啟:LINE 看到網址帶 openExternalBrowser=1 就會跳出去
     if (/\bLine\//i.test(navigator.userAgent) && !/[?&]openExternalBrowser=1/.test(location.search)) {
@@ -23,7 +23,7 @@
   </script>
   <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
 </head>
-<body>
+<body class="scroll-y">
   <main class="mobile">
     <div class="home-tools"><button class="theme-toggle" data-theme-toggle type="button">🌙</button></div>
     <h1>🎤 KTV 點唱機</h1>
@@ -71,7 +71,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610130928"></script>
+  <script type="module" src="js/theme.js?v=202610131026"></script>
   <script type="module">
     import { createParty, partyExists } from "./js/party.js";
 
