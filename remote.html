@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>點歌 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610130904">
+  <link rel="stylesheet" href="css/style.css?v=202610130911">
   <script>
     // 從 LINE 點開時,改用 Safari(外部瀏覽器)開啟:LINE 看到網址帶 openExternalBrowser=1 就會跳出去
     if (/\bLine\//i.test(navigator.userAgent) && !/[?&]openExternalBrowser=1/.test(location.search)) {
@@ -109,12 +109,21 @@
     <button data-tab="history"><span class="ic">🕘</span>已播放</button>
   </nav>
 
+  <div class="ended" id="ended" hidden>
+    <div class="ended-card">
+      <div class="ended-icon">🎤</div>
+      <h2>派對已結束</h2>
+      <p>謝謝大家,下次再一起唱!</p>
+      <a class="btn" href="./">回首頁</a>
+    </div>
+  </div>
+
   <div class="toast-m" id="toast" hidden>
     <span id="toast-text"></span>
     <button id="toast-go" hidden>看播放清單</button>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610130904"></script>
+  <script type="module" src="js/theme.js?v=202610130911"></script>
   <script type="module">
     import {
       subscribe, addSong, skipSong, moveToNext, removeSong, setPaused,
@@ -183,9 +192,10 @@
     subscribe(code, (p) => {
       party = p;
       if (!p) {
-        $("now").innerHTML = `<li class="empty">派對已不存在</li>`;
+        $("now").innerHTML = `<li class="empty">派對已結束</li>`;
         $("queue").innerHTML = "";
         $("controls").hidden = true;
+        $("ended").hidden = false;
         return;
       }
       showNotice(p.notice);

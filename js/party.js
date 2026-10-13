@@ -3,7 +3,7 @@
 // queue[0] 是「正在播放」,queue[1] 是下一首,以此類推。
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getDatabase, ref, onValue, runTransaction, get,
+  getDatabase, ref, onValue, runTransaction, get, remove,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { firebaseConfig } from "./config.js";
 
@@ -114,6 +114,11 @@ export async function removeSong(code, songId, by) {
     const [done] = queue.splice(i, 1);
     return { ...p, queue, notice: { text: `${by} 刪除了「${done.title}」`, at: Date.now() } };
   });
+}
+
+// 結束派對:清單與已播放紀錄一起刪除,大家的點歌頁會顯示「派對已結束」
+export function endParty(code) {
+  return remove(partyRef(code));
 }
 
 export async function setPaused(code, paused) {

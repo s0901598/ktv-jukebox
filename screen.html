@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610130904">
+  <link rel="stylesheet" href="css/style.css?v=202610130911">
   <script>
     // 從 LINE 點開時,改用 Safari(外部瀏覽器)開啟:LINE 看到網址帶 openExternalBrowser=1 就會跳出去
     if (/\bLine\//i.test(navigator.userAgent) && !/[?&]openExternalBrowser=1/.test(location.search)) {
@@ -71,14 +71,15 @@
         <ul class="queue" id="queue"></ul>
       </div>
       <div class="status" id="status"></div>
+      <button class="btn danger end-party" id="end-party" type="button">⏹ 結束派對</button>
       <a class="yt-login side-login" href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener">🔑 登入 YouTube</a>
       <button class="theme-toggle" data-theme-toggle type="button">🌙</button>
     </aside>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610130904"></script>
+  <script type="module" src="js/theme.js?v=202610130911"></script>
   <script type="module">
-    import { subscribe, finishSong, setPaused, joinUrl, escapeHtml } from "./js/party.js";
+    import { subscribe, finishSong, setPaused, endParty, joinUrl, escapeHtml } from "./js/party.js";
     import { forget } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
@@ -310,12 +311,24 @@
       setTimeout(() => { $("toast").hidden = true; }, 6000);
     }
 
+    // ---------- 結束派對 ----------
+    $("end-party").addEventListener("click", async () => {
+      if (!confirm(`確定要結束派對 ${code} 嗎?\n播放清單和已播放紀錄都會刪除,大家的點歌頁會顯示「派對已結束」。`)) return;
+      player?.stopVideo?.();
+      await endParty(code);
+      location.replace("./");
+    });
+
     // ---------- 畫面 ----------
     subscribe(code, (p) => {
       party = p;
       if (!p) {
+        if (loadedSongId) player?.stopVideo();
+        loadedSongId = null;
+        $("start").hidden = true;
+        $("marquee").hidden = true;
         $("idle").hidden = false;
-        $("idle").innerHTML = `<div class="big">派對不存在</div>`;
+        $("idle").innerHTML = `<div class="big">派對已結束</div><a class="btn" href="./">回首頁</a>`;
         return;
       }
       const [current, ...rest] = p.queue;
