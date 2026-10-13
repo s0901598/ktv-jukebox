@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610130911">
+  <link rel="stylesheet" href="css/style.css?v=202610130928">
   <script>
     // 從 LINE 點開時,改用 Safari(外部瀏覽器)開啟:LINE 看到網址帶 openExternalBrowser=1 就會跳出去
     if (/\bLine\//i.test(navigator.userAgent) && !/[?&]openExternalBrowser=1/.test(location.search)) {
@@ -52,11 +52,12 @@
 
       <!-- 收起資訊欄時:上方跑馬燈顯示下一首、右上角小代碼 -->
       <div class="marquee" id="marquee" hidden><div class="track" id="marquee-track"></div></div>
-      <button class="corner-code" id="corner-code" type="button" hidden aria-label="打開右側資訊欄">代碼 <b id="corner-code-num"></b> ☰</button>
+      <div class="corner-code" id="corner-code" hidden>代碼 <b id="corner-code-num"></b></div>
+      <button class="menu-btn" id="menu-open" type="button" hidden aria-label="打開右側資訊欄">☰</button>
     </div>
 
     <aside class="side">
-      <button class="side-close" id="side-close" type="button" aria-label="收起右側資訊欄">✕</button>
+      <button class="menu-btn side-menu" id="side-close" type="button" aria-label="收起右側資訊欄">☰</button>
       <div class="code-box">
         <div class="code-label">派對代碼</div>
         <div class="code" id="code"></div>
@@ -71,13 +72,15 @@
         <ul class="queue" id="queue"></ul>
       </div>
       <div class="status" id="status"></div>
-      <button class="btn danger end-party" id="end-party" type="button">⏹ 結束派對</button>
-      <a class="yt-login side-login" href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener">🔑 登入 YouTube</a>
-      <button class="theme-toggle" data-theme-toggle type="button">🌙</button>
+      <div class="side-tools">
+        <button class="side-tool danger" id="end-party" type="button">⏹ 結束派對</button>
+        <a class="side-tool" href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener">🔑 登入</a>
+        <button class="side-tool" data-theme-toggle type="button">🌙</button>
+      </div>
     </aside>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610130911"></script>
+  <script type="module" src="js/theme.js?v=202610130928"></script>
   <script type="module">
     import { subscribe, finishSong, setPaused, endParty, joinUrl, escapeHtml } from "./js/party.js";
     import { forget } from "./js/library.js";
@@ -209,9 +212,10 @@
       collapsed = c;
       $("stage").classList.toggle("collapsed", c);
       $("corner-code").hidden = !c;
+      $("menu-open").hidden = !c;
       updateMarquee();
     }
-    $("corner-code").addEventListener("click", () => setCollapsed(false));
+    $("menu-open").addEventListener("click", () => setCollapsed(false));
     $("side-close").addEventListener("click", () => setCollapsed(true));
 
     // 跑馬燈:每首歌開始時跑一次,之後每 40 秒跑一次,跑完就隱藏
@@ -328,7 +332,7 @@
         $("start").hidden = true;
         $("marquee").hidden = true;
         $("idle").hidden = false;
-        $("idle").innerHTML = `<div class="big">派對已結束</div><a class="btn" href="./">回首頁</a>`;
+        $("idle").innerHTML = `<div class="big">派對已結束</div><a class="btn idle-home" href="./">回首頁</a>`;
         return;
       }
       const [current, ...rest] = p.queue;

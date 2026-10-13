@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610130911">
+  <link rel="stylesheet" href="css/style.css?v=202610130928">
   <script>
     // 從 LINE 點開時,改用 Safari(外部瀏覽器)開啟:LINE 看到網址帶 openExternalBrowser=1 就會跳出去
     if (/\bLine\//i.test(navigator.userAgent) && !/[?&]openExternalBrowser=1/.test(location.search)) {
@@ -42,12 +42,36 @@
 
     <section class="card">
       <h2>我是播放端(接投影機的手機)</h2>
-      <button class="btn secondary" id="create-btn">建立派對</button>
+
+      <!-- 第一次使用:先登入 YouTube(這支手機記住後就不再出現) -->
+      <div class="step" id="yt-step">
+        <div class="step-title">① 第一次使用:先登入 YouTube(只要做一次)</div>
+        <p class="step-note">有 YouTube Premium 才能減少廣告。登入完回到這一頁就好。</p>
+        <a class="btn alt" id="yt-login" href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener">🔑 登入 YouTube</a>
+        <button class="btn secondary" id="yt-done" type="button">✓ 我登入好了</button>
+      </div>
+      <div class="step-ok" id="yt-ok" hidden>
+        ✅ 這支手機已登入過 YouTube
+        <a href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener">重新登入</a>
+      </div>
+
+      <div class="step-title" id="create-title">② 建立派對</div>
+      <button class="btn" id="create-btn">建立派對</button>
       <div class="msg" id="create-msg"></div>
     </section>
   </main>
 
-  <script type="module" src="js/theme.js?v=202610130911"></script>
+  <!-- 從 YouTube 登入頁切回來時自動跳出 -->
+  <div class="dialog" id="yt-ask" hidden>
+    <div class="dialog-card">
+      <h2>YouTube 登入好了嗎?</h2>
+      <p>登入完成後按「我登入好了」,這支手機之後就不會再提醒。</p>
+      <button class="btn" id="yt-ask-yes" type="button">✓ 我登入好了</button>
+      <button class="btn secondary" id="yt-ask-no" type="button">還沒,等一下</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/theme.js?v=202610130928"></script>
   <script type="module">
     import { createParty, partyExists } from "./js/party.js";
 
@@ -78,6 +102,42 @@
         btn.disabled = false;
       }
     });
+
+    // ---------- 登入 YouTube 引導 ----------
+    const YT_KEY = "ktv-yt-login";
+    const store = {
+      get: () => { try { return localStorage.getItem(YT_KEY) === "1"; } catch (_) { return false; } },
+      set: () => { try { localStorage.setItem(YT_KEY, "1"); } catch (_) { /* 無痕模式存不了 */ } },
+    };
+    function refreshYtStep() {
+      const done = store.get();
+      $("yt-step").hidden = done;
+      $("yt-ok").hidden = !done;
+      $("create-title").hidden = done; // 登入過就只剩「建立派對」,不用再編號
+    }
+    function markLoggedIn() {
+      store.set();
+      $("yt-ask").hidden = true;
+      refreshYtStep();
+    }
+    refreshYtStep();
+
+    // 按了登入就記下來,切回這一頁時自動問「登入好了嗎?」
+    let waitingLogin = false;
+    $("yt-login").addEventListener("click", () => { waitingLogin = true; });
+    const askIfBack = () => {
+      if (waitingLogin && document.visibilityState === "visible" && !store.get()) {
+        waitingLogin = false;
+        $("yt-ask").hidden = false;
+      }
+    };
+    document.addEventListener("visibilitychange", askIfBack);
+    addEventListener("focus", askIfBack);
+    addEventListener("pageshow", askIfBack);
+
+    $("yt-done").addEventListener("click", markLoggedIn);
+    $("yt-ask-yes").addEventListener("click", markLoggedIn);
+    $("yt-ask-no").addEventListener("click", () => { $("yt-ask").hidden = true; waitingLogin = true; });
 
     $("create-btn").addEventListener("click", async (e) => {
       e.target.disabled = true;
