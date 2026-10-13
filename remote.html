@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>點歌 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610131102">
+  <link rel="stylesheet" href="css/style.css?v=202610131500">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -94,6 +94,7 @@
       <section class="card">
         <h2>接下來</h2>
         <ul class="song-list" id="queue"></ul>
+        <div class="pager" id="queue-pager" hidden></div>
       </section>
     </div>
 
@@ -102,6 +103,7 @@
       <section class="card">
         <h2>🕘 已播放</h2>
         <ul class="song-list" id="history"></ul>
+        <div class="pager" id="history-pager" hidden></div>
       </section>
     </div>
   </main>
@@ -127,7 +129,7 @@
     <button id="toast-go" hidden>看播放清單</button>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610131102"></script>
+  <script type="module" src="js/theme.js?v=202610131500"></script>
   <script type="module">
     import {
       subscribe, addSong, skipSong, moveToNext, removeSong, setPaused,
@@ -176,6 +178,31 @@
     const placeText = (position) =>
       position === 0 ? "馬上播放" : position === 1 ? "下一首就播" : `排在第 ${position} 首`;
 
+    // ---------- 待播放/已播放分頁:一頁 10 首 ----------
+    const PAGE_SIZE = 10;
+    const pages = { queue: 0, history: 0 };
+    // 畫出換頁按鈕,回傳這一頁從第幾首開始;清單變短時退到最後一頁,清單更新時停在原本那頁
+    function pageStart(key, total) {
+      const count = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      pages[key] = Math.min(pages[key], count - 1);
+      const pager = $(`${key}-pager`);
+      pager.hidden = total <= PAGE_SIZE;
+      pager.innerHTML = `
+        <button class="btn secondary" data-step="-1" ${pages[key] === 0 ? "disabled" : ""}>‹ 上一頁</button>
+        <span>第 ${pages[key] + 1} / ${count} 頁</span>
+        <button class="btn secondary" data-step="1" ${pages[key] === count - 1 ? "disabled" : ""}>下一頁 ›</button>`;
+      return pages[key] * PAGE_SIZE;
+    }
+    function bindPager(key, render) {
+      $(`${key}-pager`).addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-step]");
+        if (!btn || btn.disabled) return;
+        pages[key] += Number(btn.dataset.step);
+        render();
+        $(key).closest(".card").scrollIntoView({ block: "start" });
+      });
+    }
+
     // ---------- 播放中 ----------
     let party = null;
 
@@ -198,21 +225,29 @@
       if (!p) {
         $("now").innerHTML = `<li class="empty">派對已結束</li>`;
         $("queue").innerHTML = "";
+        $("queue-pager").hidden = true;
         $("controls").hidden = true;
         $("ended").hidden = false;
         return;
       }
       showNotice(p.notice);
-      const [current, ...rest] = p.queue;
+      const current = p.queue[0];
       $("now").innerHTML = current ? queueRow(current, 0) : `<li class="empty">還沒有人點歌</li>`;
       $("controls").hidden = !current;
       $("pause-btn").textContent = p.paused ? "▶ 繼續播放" : "⏸ 暫停";
-      $("queue").innerHTML = rest.length
-        ? rest.map((s, i) => queueRow(s, i + 1)).join("")
-        : `<li class="empty">清單是空的,快來點歌</li>`;
+      renderQueue();
       $("queue-count").textContent = p.queue.length ? p.queue.length : "";
       renderHistory();
     });
+
+    function renderQueue() {
+      const rest = party?.queue.slice(1) || [];
+      const start = pageStart("queue", rest.length);
+      $("queue").innerHTML = rest.length
+        ? rest.slice(start, start + PAGE_SIZE).map((s, i) => queueRow(s, start + i + 1)).join("")
+        : `<li class="empty">清單是空的,快來點歌</li>`;
+    }
+    bindPager("queue", renderQueue);
 
     $("pause-btn").addEventListener("click", () => {
       if (party?.queue[0]) setPaused(code, !party.paused);
@@ -372,12 +407,14 @@
     const hhmm = (t) => new Date(t).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false });
     function renderHistory() {
       historyList = [...(party?.history || [])].reverse();
+      const start = pageStart("history", historyList.length);
       $("history").innerHTML = historyList.length
-        ? historyList.map((s, i) => pickRow(s, i, `<div class="by">${escapeHtml(s.by)} 點的 · ${hhmm(s.endedAt)}<br>${
+        ? historyList.slice(start, start + PAGE_SIZE).map((s, i) => pickRow(s, start + i, `<div class="by">${escapeHtml(s.by)} 點的 · ${hhmm(s.endedAt)}<br>${
             RESULT_TEXT[s.result] || ""}${s.result === "skipped" && s.endedBy ? `(${escapeHtml(s.endedBy)})` : ""}</div>`)).join("")
         : `<li class="empty">還沒有唱完的歌</li>`;
     }
     bindPicks($("history"), () => historyList);
+    bindPager("history", renderHistory);
 
     // ---------- 貼連結 ----------
     $("add-form").addEventListener("submit", async (e) => {

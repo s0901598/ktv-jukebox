@@ -204,6 +204,9 @@ body.screen-body {
   justify-content: center;
   background: #000;
   overscroll-behavior: none;
+  /* 瀏海那一側留黑邊,按鈕不會被擋到 */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 /* 量瀏海寬度用:左右取較大的一邊,兩邊留一樣寬,畫面才會置中 */
 #safe-probe {
@@ -213,13 +216,13 @@ body.screen-body {
   padding-left: max(env(safe-area-inset-left), env(safe-area-inset-right));
 }
 
-/* 以 16:9 填滿可用空間。--u 由 screen.html 依實際看得到的畫面大小計算(iPhone 的 100vh 會包含被工具列擋住的部分);
-   這裡的值只是腳本還沒跑之前的備用 */
+/* 填滿實際看得到的範圍(不再硬鎖 16:9,橫拿手機時左右不留黑邊;影片本身由播放器維持比例)。
+   --u 是字和按鈕的縮放單位,由 screen.html 依畫面大小計算;這裡的值只是腳本還沒跑之前的備用 */
 .stage {
   --u: min(1vw, calc(100dvh * 16 / 9 / 100));
   flex: none;
-  width: calc(var(--u) * 100);
-  height: calc(var(--u) * 56.25);
+  width: 100%;
+  height: 100%;
   display: grid;
   grid-template-columns: 1fr calc(var(--u) * 26);
   background: var(--bg);
@@ -680,6 +683,8 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
   cursor: pointer;
 }
 .side-tool.danger { background: var(--danger); color: var(--on-accent); }
+.side-tool.alt { background: var(--accent-2); color: var(--on-accent-2); }
+.side-tool[hidden] { display: none; }
 
 /* ---------- 拖動鎖定:手指拖不會把整頁拉走,但可以雙指縮放 ---------- */
 html { overscroll-behavior: none; }
@@ -693,3 +698,9 @@ body.scroll-y { touch-action: pan-y pinch-zoom; overflow-x: hidden; }
 .step-list { margin: 4px 0 2px; padding-left: 1.3em; color: var(--muted); font-size: 15px; line-height: 1.55; }
 .step-list b { color: var(--text); }
 .dialog-card .btn { text-align: center; text-decoration: none; }
+
+/* ---------- 待播放/已播放換頁(一頁 10 首) ---------- */
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
+.pager .btn { width: auto; flex: none; margin: 0; padding: 12px 14px; font-size: 17px; }
+.pager .btn:disabled { opacity: 0.35; }
+.pager span { color: var(--muted); font-size: 16px; white-space: nowrap; }

@@ -1,0 +1,5 @@
+# Python 執行時自動產生的暫存檔
+__pycache__/
+*.pyc
+# macOS
+.DS_Store

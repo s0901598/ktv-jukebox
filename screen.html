@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610131102">
+  <link rel="stylesheet" href="css/style.css?v=202610131500">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -77,23 +77,25 @@
       </div>
       <div class="status" id="status"></div>
       <div class="side-tools">
+        <button class="side-tool alt" id="skip-btn" type="button" hidden>⏭ 切歌</button>
         <button class="side-tool danger" id="end-party" type="button">⏹ 結束派對</button>
+        <button class="side-tool" id="fs-btn" type="button" hidden>⛶ 全螢幕</button>
         <a class="side-tool" href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener">🔑 登入</a>
         <button class="side-tool" data-theme-toggle type="button">🌙</button>
       </div>
     </aside>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610131102"></script>
+  <script type="module" src="js/theme.js?v=202610131500"></script>
   <script type="module">
-    import { subscribe, finishSong, setPaused, endParty, joinUrl, escapeHtml } from "./js/party.js";
+    import { subscribe, finishSong, skipSong, setPaused, endParty, joinUrl, escapeHtml } from "./js/party.js";
     import { forget } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
     if (!/^[0-9]{4}$/.test(code)) location.replace("./");
 
-    // ---------- 依實際看得到的畫面大小排版,讓 16:9 畫面置中 ----------
+    // ---------- 依實際看得到的畫面大小排版:畫面填滿可視範圍,字和按鈕依 16:9 比例縮放 ----------
     // iPhone Safari 的 100vh 含工具列後面被擋住的高度,轉向或收合工具列時也會變,所以用程式量
     function fitStage() {
       const vv = window.visualViewport;
@@ -282,6 +284,21 @@
       $("tap").hidden = true;
     });
 
+    // 整頁全螢幕(電腦、Android、iPad):影片和右上角漢堡鈕、資訊欄一起放大。
+    // iPhone 不支援整頁全螢幕,不顯示這顆;YouTube 播放器自己的全螢幕鈕照樣保留
+    const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+    if (canFullscreen) $("fs-btn").hidden = false;
+    $("fs-btn").addEventListener("click", () => {
+      if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else enterFullscreen();
+    });
+    function refreshFsBtn() {
+      $("fs-btn").textContent = fsElement() === document.documentElement ? "⛶ 離開全螢幕" : "⛶ 全螢幕";
+      fitStage();
+    }
+    document.addEventListener("fullscreenchange", refreshFsBtn);
+    document.addEventListener("webkitfullscreenchange", refreshFsBtn);
+
     async function enterFullscreen() {
       const el = document.documentElement;
       try {
@@ -320,6 +337,12 @@
       setTimeout(() => { $("toast").hidden = true; }, 6000);
     }
 
+    // ---------- 切歌(跟點歌端一樣帶歌曲 ID,多人同時按也只會跳過一首) ----------
+    $("skip-btn").addEventListener("click", () => {
+      const current = party?.queue[0];
+      if (current && confirm(`確定要切掉「${current.title}」嗎?`)) skipSong(code, current.id, "大螢幕");
+    });
+
     // ---------- 結束派對 ----------
     $("end-party").addEventListener("click", async () => {
       if (!confirm(`確定要結束派對 ${code} 嗎?\n播放清單和已播放紀錄都會刪除,大家的點歌頁會顯示「派對已結束」。`)) return;
@@ -336,6 +359,7 @@
         loadedSongId = null;
         $("start").hidden = true;
         $("marquee").hidden = true;
+        $("skip-btn").hidden = true;
         $("idle").hidden = false;
         $("idle").innerHTML = `<div class="big">派對已結束</div><a class="btn idle-home" href="./">回首頁</a>`;
         return;
@@ -349,6 +373,7 @@
         : `<li class="by">清單是空的</li>`;
       showNotice(p.notice);
       $("paused").hidden = !(p.paused && current);
+      $("skip-btn").hidden = !current;
       sync();
       updateMarquee();
     });
