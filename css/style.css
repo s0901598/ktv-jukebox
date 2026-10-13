@@ -208,6 +208,13 @@ body.screen-body {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
+/* 直拿時整頁轉 90 度(screen.html 設定 transform):瀏海在畫面左邊、底部橫條在右邊 */
+body.screen-body.rotated {
+  transform-origin: 0 0;
+  padding-left: max(env(safe-area-inset-top), env(safe-area-inset-bottom));
+  padding-right: max(env(safe-area-inset-top), env(safe-area-inset-bottom));
+}
+body.screen-body.rotated #safe-probe { padding-left: max(env(safe-area-inset-top), env(safe-area-inset-bottom)); }
 /* 量瀏海寬度用:左右取較大的一邊,兩邊留一樣寬,畫面才會置中 */
 #safe-probe {
   position: absolute;
