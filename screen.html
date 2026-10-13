@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610132100">
+  <link rel="stylesheet" href="css/style.css?v=202610132200">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -86,16 +86,7 @@
     </aside>
   </div>
 
-  <!-- 暫時的診斷模式(&debug=1):最早開始收錯誤,再載入 js/debug.js 把數字記到資料庫 -->
-  <script>
-    if (new URLSearchParams(location.search).get("debug") === "1") {
-      window.__dbgErrors = [];
-      addEventListener("error", (e) => window.__dbgErrors.push(`${e.message} @${e.filename}:${e.lineno}`));
-      addEventListener("unhandledrejection", (e) => window.__dbgErrors.push(String(e.reason)));
-      import("./js/debug.js?v=202610132100");
-    }
-  </script>
-  <script type="module" src="js/theme.js?v=202610132100"></script>
+  <script type="module" src="js/theme.js?v=202610132200"></script>
   <script type="module">
     import { subscribe, finishSong, skipSong, setPaused, endParty, joinUrl, escapeHtml } from "./js/party.js";
     import { forget } from "./js/library.js";
@@ -108,14 +99,19 @@
     // iPhone Safari 的 100vh 含工具列後面被擋住的高度,轉向或收合工具列時也會變,所以用程式量
     const isTouch = matchMedia("(pointer: coarse)").matches;
     // 手機從直拿逆時針轉了幾度(0、90、180、270);讀不到就用畫面寬高猜(橫的當作往左轉)
+    // 回報的方向跟實際空間對不上時,以實際空間為準:iPhone Chrome 轉橫時會回報「橫的」,但給網頁的空間還是直的
     function deviceAngle(vw, vh) {
       const a = typeof window.orientation === "number" ? window.orientation : screen.orientation?.angle;
-      if (typeof a === "number") return ((a % 360) + 360) % 360;
-      return vw > vh ? 90 : 0;
+      const angle = typeof a === "number" ? ((a % 360) + 360) % 360 : null;
+      const sidewaysAngle = angle === 90 || angle === 270;
+      if (angle === null || sidewaysAngle !== vw > vh) return vw > vh ? 90 : 0;
+      return angle;
     }
     function fitStage() {
       const vv = window.visualViewport;
-      if (vv && vv.scale > 1.01) return; // 使用者正在雙指放大,不要重新排版把放大抵銷掉
+      // 使用者正在雙指放大(看得到的範圍比網頁版面小),不要重新排版把放大抵銷掉。
+      // 不用 vv.scale 判斷:Safari 網頁縮放設 115% 時 scale 也會是 1.15,會被誤判成一直在放大
+      if (vv && vv.width < document.documentElement.clientWidth - 1) return;
       const vw = vv ? vv.width : innerWidth;
       const vh = vv ? vv.height : innerHeight;
       // 手機、平板:畫面固定在手機上不跟著轉(網頁無法鎖定方向,所以瀏覽器轉了多少就反轉回來)。
@@ -375,6 +371,29 @@
       player?.stopVideo?.();
       await endParty(code);
       location.replace("./");
+    });
+
+    // ---------- 返回鍵、手勢滑回上一頁:先確認,確定就結束派對回首頁 ----------
+    // 先多放一筆「同一頁」的紀錄,按返回時只會退到這一筆,網頁才有機會問
+    // (手機 Chrome 規定使用者點過頁面後放的紀錄才算數,所以第一次點畫面時再放一筆)
+    let guards = 0;
+    const addGuard = () => { history.pushState({ ktvGuard: true }, ""); guards++; };
+    addGuard();
+    addEventListener("pointerdown", addGuard, { once: true });
+    let leaving = false;
+    addEventListener("popstate", async () => {
+      if (leaving) return;
+      guards--;
+      if (!confirm(`確定要離開派對房間嗎?\n離開後派對 ${code} 會結束,大家的點歌頁會顯示「派對已結束」。`)) {
+        addGuard();
+        return;
+      }
+      leaving = true;
+      player?.stopVideo?.();
+      await endParty(code).catch(() => {});
+      // 退回建立派對頁(跳過剩下的紀錄);直接開大螢幕網址、前面沒有首頁時,就換成首頁
+      history.go(-(guards + 1));
+      setTimeout(() => location.replace("./"), 800);
     });
 
     // ---------- 畫面 ----------

@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610132100">
+  <link rel="stylesheet" href="css/style.css?v=202610132200">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -71,7 +71,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610132100"></script>
+  <script type="module" src="js/theme.js?v=202610132200"></script>
   <script type="module">
     import { createParty, partyExists } from "./js/party.js";
 
@@ -112,6 +112,15 @@
     $("create-btn").addEventListener("click", (e) => {
       if (isIosSafari) { $("use-chrome").hidden = false; return; }
       createAndGo(e.target);
+    });
+
+    // 從大螢幕按返回鍵回來時,瀏覽器會直接顯示離開當下的畫面(按鈕還是「建立中…」),所以每次顯示都重置
+    addEventListener("pageshow", () => {
+      $("create-btn").disabled = false;
+      $("create-msg").textContent = "";
+      $("create-msg").className = "msg";
+      $("use-chrome").hidden = true;
+      document.querySelectorAll("#join-form button").forEach((b) => (b.disabled = false));
     });
 
     async function createAndGo(btn) {
