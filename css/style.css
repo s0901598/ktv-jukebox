@@ -574,3 +574,26 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
   cursor: pointer;
   z-index: 2;
 }
+
+/* 登入 YouTube 按鈕(開新分頁到 YouTube 登入頁,登入完回到點唱機分頁) */
+.yt-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  text-decoration: none;
+  font-size: max(14px, calc(var(--u) * 1.3));
+  font-weight: 700;
+}
+.side .side-login {
+  align-self: flex-start;
+  border-color: var(--panel-2);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: max(13px, calc(var(--u) * 1));
+}
