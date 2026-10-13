@@ -12,13 +12,17 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610131026">
+  <link rel="stylesheet" href="css/style.css?v=202610131102">
   <script>
-    // 從 LINE 點開時,改用 Safari(外部瀏覽器)開啟:LINE 看到網址帶 openExternalBrowser=1 就會跳出去
+    // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
+    // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
     if (/\bLine\//i.test(navigator.userAgent) && !/[?&]openExternalBrowser=1/.test(location.search)) {
       const u = new URL(location.href);
       u.searchParams.set("openExternalBrowser", "1");
-      location.replace(u.href);
+      let left = false;
+      document.addEventListener("visibilitychange", () => { if (document.hidden) left = true; });
+      setTimeout(() => { if (!left) location.replace(u.href); }, 1500);
+      location.href = "googlechromes://" + u.host + u.pathname + u.search;
     }
   </script>
   <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
@@ -45,8 +49,12 @@
 
       <!-- 第一次使用:先登入 YouTube(這支手機記住後就不再出現) -->
       <div class="step" id="yt-step">
-        <div class="step-title">① 第一次使用:先登入 YouTube(只要做一次)</div>
-        <p class="step-note">有 YouTube Premium 才能減少廣告。登入完回到這一頁就好。</p>
+        <div class="step-title">① 第一次使用:用 Chrome 登入 YouTube(只要做一次)</div>
+        <ol class="step-list">
+          <li>按下面「登入 YouTube」,登入有 Premium 的帳號,登入完回到這一頁</li>
+          <li>到 iPhone「設定 → App → Chrome」,打開「<b>允許跨網站追蹤</b>」</li>
+          <li>按「我登入好了」</li>
+        </ol>
         <a class="btn alt" id="yt-login" href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener">🔑 登入 YouTube</a>
         <button class="btn secondary" id="yt-done" type="button">✓ 我登入好了</button>
       </div>
@@ -61,6 +69,16 @@
     </section>
   </main>
 
+  <!-- iPhone Safari 建立派對時,建議改用 Chrome -->
+  <div class="dialog" id="use-chrome" hidden>
+    <div class="dialog-card">
+      <h2>建議用 Chrome 開播放端</h2>
+      <p>用 Safari 播放會有廣告;改用 Chrome 並登入 YouTube Premium,才有機會沒有廣告。</p>
+      <a class="btn" id="open-chrome" href="#">用 Chrome 開啟</a>
+      <button class="btn secondary" id="stay-safari" type="button">繼續用 Safari</button>
+    </div>
+  </div>
+
   <!-- 從 YouTube 登入頁切回來時自動跳出 -->
   <div class="dialog" id="yt-ask" hidden>
     <div class="dialog-card">
@@ -71,7 +89,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610131026"></script>
+  <script type="module" src="js/theme.js?v=202610131102"></script>
   <script type="module">
     import { createParty, partyExists } from "./js/party.js";
 
@@ -139,8 +157,19 @@
     $("yt-ask-yes").addEventListener("click", markLoggedIn);
     $("yt-ask-no").addEventListener("click", () => { $("yt-ask").hidden = true; waitingLogin = true; });
 
-    $("create-btn").addEventListener("click", async (e) => {
-      e.target.disabled = true;
+    // iPhone/iPad 的 Safari(不是 Chrome、Firefox、Edge、LINE)建立派對時,先建議改用 Chrome
+    const ua = navigator.userAgent;
+    const isIosSafari = /iP(hone|ad|od)/.test(ua) && /Safari\//.test(ua) && !/CriOS|FxiOS|EdgiOS|\bLine\//i.test(ua);
+    $("open-chrome").href = "googlechromes://" + location.host + location.pathname;
+    $("stay-safari").addEventListener("click", () => { $("use-chrome").hidden = true; createAndGo($("create-btn")); });
+
+    $("create-btn").addEventListener("click", (e) => {
+      if (isIosSafari) { $("use-chrome").hidden = false; return; }
+      createAndGo(e.target);
+    });
+
+    async function createAndGo(btn) {
+      btn.disabled = true;
       $("create-msg").textContent = "建立中…";
       $("create-msg").className = "msg ok";
       try {
@@ -149,9 +178,9 @@
       } catch (err) {
         $("create-msg").className = "msg";
         $("create-msg").textContent = err.message || "建立失敗,請再試一次";
-        e.target.disabled = false;
+        btn.disabled = false;
       }
-    });
+    }
   </script>
 </body>
 </html>

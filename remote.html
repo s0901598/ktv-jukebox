@@ -12,13 +12,17 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>點歌 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610131026">
+  <link rel="stylesheet" href="css/style.css?v=202610131102">
   <script>
-    // 從 LINE 點開時,改用 Safari(外部瀏覽器)開啟:LINE 看到網址帶 openExternalBrowser=1 就會跳出去
+    // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
+    // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
     if (/\bLine\//i.test(navigator.userAgent) && !/[?&]openExternalBrowser=1/.test(location.search)) {
       const u = new URL(location.href);
       u.searchParams.set("openExternalBrowser", "1");
-      location.replace(u.href);
+      let left = false;
+      document.addEventListener("visibilitychange", () => { if (document.hidden) left = true; });
+      setTimeout(() => { if (!left) location.replace(u.href); }, 1500);
+      location.href = "googlechromes://" + u.host + u.pathname + u.search;
     }
   </script>
   <script>try { const t = localStorage.getItem("ktv-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}</script>
@@ -123,7 +127,7 @@
     <button id="toast-go" hidden>看播放清單</button>
   </div>
 
-  <script type="module" src="js/theme.js?v=202610131026"></script>
+  <script type="module" src="js/theme.js?v=202610131102"></script>
   <script type="module">
     import {
       subscribe, addSong, skipSong, moveToNext, removeSong, setPaused,
