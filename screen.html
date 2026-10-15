@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610151900">
+  <link rel="stylesheet" href="css/style.css?v=202610152000">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -62,6 +62,11 @@
 
     <aside class="side">
       <button class="menu-btn side-menu" id="side-close" type="button" aria-label="收起右側資訊欄">☰</button>
+      <!-- 左上角:登入 YouTube、深淺色(跟右上角 ☰ 對稱) -->
+      <div class="side-corner">
+        <a class="corner-tool" href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener" title="登入 YouTube" aria-label="登入 YouTube">🔑</a>
+        <button class="corner-tool" data-theme-toggle type="button">🌙</button>
+      </div>
       <div class="code-box">
         <div class="code-label">派對代碼</div>
         <div class="code" id="code"></div>
@@ -87,8 +92,6 @@
         <button class="side-tool alt" id="skip-btn" type="button" hidden>⏭ 切歌</button>
         <button class="side-tool danger" id="end-party" type="button">⏹ 結束派對</button>
         <button class="side-tool" id="fs-btn" type="button" hidden>⛶ 全螢幕</button>
-        <a class="side-tool" href="https://accounts.google.com/ServiceLogin?service=youtube&amp;continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener">🔑 登入</a>
-        <button class="side-tool" data-theme-toggle type="button">🌙</button>
       </div>
     </aside>
   </div>
@@ -148,6 +151,8 @@
       ul.classList.remove("tight");
       if (ul.scrollHeight > ul.clientHeight + 1) ul.classList.add("tight");
     }
+    // 清單可用的高度變了(下方提示文字變長、歌名換了)也重新檢查
+    new ResizeObserver(fitSideQueue).observe($("queue"));
     fitStage();
     addEventListener("resize", fitStage);
     addEventListener("orientationchange", () => { fitStage(); setTimeout(fitStage, 300); setTimeout(fitStage, 800); });

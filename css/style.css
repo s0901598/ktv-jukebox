@@ -268,7 +268,7 @@ body.screen-body.rotated #safe-probe { padding-left: max(env(safe-area-inset-top
 .side .code-label { color: var(--muted); font-size: calc(var(--u) * 1.3); }
 .side .code {
   color: var(--accent-2-text);
-  font-size: calc(var(--u) * 5);
+  font-size: calc(var(--u) * 4.5);
   font-weight: 800;
   letter-spacing: 0.12em;
   line-height: 1.1;
@@ -277,21 +277,21 @@ body.screen-body.rotated #safe-probe { padding-left: max(env(safe-area-inset-top
 
 .side h3 { margin: 0 0 calc(var(--u) * 0.5); font-size: calc(var(--u) * 1.3); color: var(--accent); }
 .side .now { font-size: calc(var(--u) * 1.5); line-height: 1.35; }
-/* 歌名最多兩行,讓「接下來」放得下一頁 8 首 */
-.side .now-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+/* 歌名只顯示一行,讓「接下來」放得下一頁 8 首 */
+.side .now-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side .now .by, .side .queue .by { color: var(--muted); font-size: 0.8em; }
 
 .side .queue { list-style: none; margin: 0; padding: 0; overflow: hidden; flex: 1; min-height: 0; }
 .side .queue li {
-  font-size: calc(var(--u) * 1.2);
-  padding: calc(var(--u) * 0.3) 0;
+  font-size: calc(var(--u) * 1.5);
+  padding: calc(var(--u) * 0.5) 0;
   border-top: 1px solid var(--panel-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .side .queue .num { color: var(--accent-2-text); margin-right: 0.4em; }
-.side .queue.tight li { padding: 0; }
+.side .queue.tight li { padding: calc(var(--u) * 0.2) 0; }
 /* 「接下來」標題列右邊的換頁按鈕(一頁 8 首) */
 .side .queue-head { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) * 0.6); margin-bottom: calc(var(--u) * 0.5); }
 .side .queue-head h3 { margin: 0; }
@@ -697,7 +697,8 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .dialog-card p { color: var(--muted); margin: 0 0 6px; line-height: 1.5; }
 
 /* 資訊欄底部的小工具列:結束派對、登入、深淺色。大小跟著畫面縮放,直向小畫面也不會太大 */
-.side .code-box { padding-right: max(26px, calc(var(--u) * 3.2)); }
+/* 「派對代碼」這行跟左上角按鈕、右上角 ☰ 同高,代碼數字排在按鈕下面 */
+.side .code-label { min-height: max(26px, calc(var(--u) * 3.2)); display: flex; align-items: center; justify-content: center; margin-top: calc(var(--u) * -0.4); }
 .side-tools { display: flex; gap: max(4px, calc(var(--u) * 0.5)); align-items: center; flex-wrap: wrap; }
 .side-tool {
   display: inline-flex;
@@ -718,6 +719,24 @@ body.with-tabs .mobile { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .side-tool.danger { background: var(--danger); color: var(--on-accent); }
 .side-tool.alt { background: var(--accent-2); color: var(--on-accent-2); }
 .side-tool[hidden] { display: none; }
+.side-tools { flex-wrap: nowrap; }
+/* 資訊欄左上角的登入、深淺色,大小跟右上角 ☰ 一樣 */
+.side-corner { position: absolute; top: calc(var(--u) * 1); left: calc(var(--u) * 1.2); z-index: 5; display: flex; gap: calc(var(--u) * 0.5); }
+.corner-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max(26px, calc(var(--u) * 3.2));
+  height: max(26px, calc(var(--u) * 3.2));
+  border: 0;
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: max(13px, calc(var(--u) * 1.5));
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
 
 /* ---------- 拖動鎖定:手指拖不會把整頁拉走,但可以雙指縮放 ---------- */
 html { overscroll-behavior: none; }
