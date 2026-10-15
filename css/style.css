@@ -711,6 +711,10 @@ body.scroll-y { touch-action: pan-y pinch-zoom; overflow-x: hidden; }
 .step-list { margin: 4px 0 2px; padding-left: 1.3em; color: var(--muted); font-size: 15px; line-height: 1.55; }
 .step-list b { color: var(--text); }
 .dialog-card .btn { text-align: center; text-decoration: none; }
+/* 確認視窗(切歌、刪除、結束派對) */
+.dialog-msg { color: var(--text); font-size: 19px; line-height: 1.5; margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.dialog-btns { display: flex; gap: 10px; margin-top: 18px; }
+.dialog-btns .btn { margin-top: 0; flex: 1; }
 
 /* ---------- 待播放/已播放換頁(一頁 10 首) ---------- */
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }

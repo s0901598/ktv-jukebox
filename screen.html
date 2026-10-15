@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610151500">
+  <link rel="stylesheet" href="css/style.css?v=202610151800">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -90,6 +90,7 @@
   <script type="module">
     import { subscribe, finishSong, skipSong, setPaused, endParty, joinUrl, escapeHtml, CODE_RE, watchExpiry } from "./js/party.js";
     import { forget } from "./js/library.js";
+    import { confirmDialog } from "./js/dialog.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
@@ -360,14 +361,14 @@
     }
 
     // ---------- 切歌(跟點歌端一樣帶歌曲 ID,多人同時按也只會跳過一首) ----------
-    $("skip-btn").addEventListener("click", () => {
+    $("skip-btn").addEventListener("click", async () => {
       const current = party?.queue[0];
-      if (current && confirm(`確定要切掉「${current.title}」嗎?`)) skipSong(code, current.id, "大螢幕");
+      if (current && await confirmDialog(`確定要切掉「${current.title}」嗎?`)) skipSong(code, current.id, "大螢幕");
     });
 
     // ---------- 結束派對 ----------
     $("end-party").addEventListener("click", async () => {
-      if (!confirm(`確定要結束派對 ${code} 嗎?\n播放清單和已播放紀錄都會刪除,大家的點歌頁會顯示「派對已結束」。`)) return;
+      if (!(await confirmDialog(`確定要結束派對 ${code} 嗎?\n播放清單和已播放紀錄都會刪除,大家的點歌頁會顯示「派對已結束」。`, { ok: "結束派對" }))) return;
       player?.stopVideo?.();
       await endParty(code);
       location.replace("./");
