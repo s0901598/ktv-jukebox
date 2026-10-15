@@ -5,7 +5,7 @@
     "parties": {
       "$code": {
         ".read": true,
-        ".write": "$code.matches(/^[0-9]{4}$/)"
+        ".write": "$code.matches(/^[0-9]{5}$/)"
       }
     },
     "searchCache": {

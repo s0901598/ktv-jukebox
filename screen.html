@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610132200">
+  <link rel="stylesheet" href="css/style.css?v=202610151500">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -88,12 +88,12 @@
 
   <script type="module" src="js/theme.js?v=202610132200"></script>
   <script type="module">
-    import { subscribe, finishSong, skipSong, setPaused, endParty, joinUrl, escapeHtml } from "./js/party.js";
+    import { subscribe, finishSong, skipSong, setPaused, endParty, joinUrl, escapeHtml, CODE_RE, watchExpiry } from "./js/party.js";
     import { forget } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
-    if (!/^[0-9]{4}$/.test(code)) location.replace("./");
+    if (!CODE_RE.test(code)) location.replace("./");
 
     // ---------- 依實際看得到的畫面大小排版:畫面填滿可視範圍,字和按鈕依 16:9 比例縮放;直拿時整頁轉成橫版 ----------
     // iPhone Safari 的 100vh 含工具列後面被擋住的高度,轉向或收合工具列時也會變,所以用程式量
@@ -396,9 +396,16 @@
       setTimeout(() => location.replace("./"), 800);
     });
 
+    // ---------- 派對過期(12 小時沒活動):提示後回首頁 ----------
+    const checkExpiry = watchExpiry(code, () => party, () => {
+      leaving = true; // 離開時不要再跳「確定要離開派對房間嗎?」
+      player?.stopVideo?.();
+    });
+
     // ---------- 畫面 ----------
     subscribe(code, (p) => {
       party = p;
+      checkExpiry(p);
       if (!p) {
         if (loadedSongId) player?.stopVideo();
         loadedSongId = null;

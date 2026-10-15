@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610132200">
+  <link rel="stylesheet" href="css/style.css?v=202610151500">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -35,10 +35,11 @@
     <section class="card">
       <h2>加入派對點歌</h2>
       <form id="join-form" autocomplete="off">
-        <label for="code">派對代碼(4 位數字)</label>
-        <input id="code" class="code-input" type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required>
+        <label for="code">派對代碼(5 位數字)</label>
+        <input id="code" class="code-input" type="tel" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" required>
         <label for="name">你的暱稱</label>
-        <input id="name" type="text" maxlength="12" placeholder="例如:小美、二舅" required>
+        <input id="name" type="text" maxlength="12" placeholder="例如:小美、二舅">
+        <div class="field-msg" id="name-msg" hidden>請輸入暱稱</div>
         <button class="btn" type="submit">加入</button>
         <div class="msg" id="join-msg"></div>
       </form>
@@ -73,7 +74,7 @@
 
   <script type="module" src="js/theme.js?v=202610132200"></script>
   <script type="module">
-    import { createParty, partyExists } from "./js/party.js";
+    import { createParty, partyStatus } from "./js/party.js";
 
     const $ = (id) => document.getElementById(id);
     const params = new URLSearchParams(location.search);
@@ -82,16 +83,33 @@
     if (params.get("code")) $("code").value = params.get("code");
     ($("code").value ? $("name") : $("code")).focus();
 
+    // 暱稱空白(或只有空格)時:紅框 + 「請輸入暱稱」,開始輸入就消失
+    function showNameError(show) {
+      $("name").classList.toggle("invalid", show);
+      $("name-msg").hidden = !show;
+    }
+    $("name").addEventListener("input", () => { if ($("name").value.trim()) showNameError(false); });
+    // 從點歌頁因為沒有暱稱被送回來時,直接提示
+    if (params.get("need") === "name" && !$("name").value.trim()) showNameError(true);
+
     $("join-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const code = $("code").value.trim();
       const name = $("name").value.trim();
       const btn = e.submitter;
-      btn.disabled = true;
       $("join-msg").textContent = "";
+      if (!name) {
+        showNameError(true);
+        $("name").focus();
+        return;
+      }
+      btn.disabled = true;
       try {
-        if (!(await partyExists(code))) {
-          $("join-msg").textContent = "找不到這個派對,請確認代碼";
+        const status = await partyStatus(code);
+        if (status !== "ok") {
+          $("join-msg").textContent = status === "expired"
+            ? "這個派對已超過 12 小時沒有活動,已經結束"
+            : "找不到這個派對,請確認代碼";
           return;
         }
         localStorage.setItem("ktv-name", name);

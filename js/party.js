@@ -1,5 +1,5 @@
 // 派對資料存取:所有會改動播放清單的操作都用 transaction,30 人同時按也不會互相覆蓋。
-// 資料結構 parties/{code} = { createdAt, paused, queue: [歌曲...] }
+// 資料結構 parties/{code} = { createdAt, lastActiveAt, paused, queue: [歌曲...] }
 // queue[0] 是「正在播放」,queue[1] 是下一首,以此類推。
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -18,33 +18,76 @@ export function toList(queue) {
   return (Array.isArray(queue) ? queue : Object.values(queue)).filter(Boolean);
 }
 
+// 派對代碼:5 位數字(10000~99999,共 90,000 組)
+export const CODE_RE = /^[0-9]{5}$/;
+
 function randomCode() {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  return String(Math.floor(10000 + Math.random() * 90000));
 }
 
 function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-// 超過 24 小時的派對視為過期,代碼可以重新使用
-const EXPIRE_MS = 24 * 60 * 60 * 1000;
+// 最後活動(點歌、切歌、插播、刪歌、播完換歌)超過 12 小時的派對視為過期,代碼可以重新使用
+const EXPIRE_MS = 12 * 60 * 60 * 1000;
+const lastActive = (p) => p.lastActiveAt || p.createdAt || 0;
+export const isExpired = (p) => Date.now() - lastActive(p) >= EXPIRE_MS;
 
 export async function createParty() {
   for (let i = 0; i < 20; i++) {
     const code = randomCode();
     const result = await runTransaction(partyRef(code), (cur) => {
-      if (cur && Date.now() - (cur.createdAt || 0) < EXPIRE_MS) return; // 代碼使用中,放棄
-      return { createdAt: Date.now(), paused: false, queue: [] };
+      if (cur && !isExpired(cur)) return; // 代碼使用中,放棄
+      const now = Date.now();
+      return { createdAt: now, lastActiveAt: now, paused: false, queue: [] };
     });
     if (result.committed) return code;
   }
   throw new Error("建立派對失敗,請再試一次");
 }
 
-export async function partyExists(code) {
-  if (!/^[0-9]{4}$/.test(code)) return false;
-  const snap = await get(partyRef(code));
-  return snap.exists();
+// 加入前檢查:"ok" = 可以加入,"missing" = 找不到,"expired" = 已過期
+export async function partyStatus(code) {
+  if (!CODE_RE.test(code)) return "missing";
+  const p = (await get(partyRef(code))).val();
+  if (!p) return "missing";
+  return isExpired(p) ? "expired" : "ok";
+}
+
+// 開著的頁面:派對過期,或代碼已經被新派對拿走(createdAt 不同),跳出提示後強制回首頁。
+// 回傳 check(party),每次收到派對資料時呼叫;另外每分鐘、從背景切回來時也會自己檢查。
+// 判定前先向伺服器重讀一次,避免手機剛醒來時用到舊的暫存資料而誤判
+export function watchExpiry(code, getParty, beforeLeave = () => {}) {
+  let createdAt = null;
+  let busy = false;
+  let ended = false;
+  const stale = (p) => isExpired(p) || p.createdAt !== createdAt;
+
+  async function check(p) {
+    if (ended || busy || !p) return;
+    if (createdAt === null) createdAt = p.createdAt;
+    if (!stale(p)) return;
+    busy = true;
+    try {
+      const fresh = (await get(partyRef(code))).val();
+      if (!fresh || !stale(fresh)) return; // 派對被結束(另有畫面處理)或其實沒過期
+    } catch (_) {
+      return; // 連不上伺服器,下次再檢查
+    } finally {
+      busy = false;
+    }
+    ended = true;
+    beforeLeave();
+    alert("派對已超過 12 小時沒有活動,已自動結束");
+    location.replace("./");
+  }
+
+  setInterval(() => check(getParty()), 60 * 1000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") check(getParty());
+  });
+  return check;
 }
 
 export function subscribe(code, callback) {
@@ -64,7 +107,7 @@ export async function addSong(code, song, { next = false } = {}) {
     const queue = toList(p.queue);
     position = next ? Math.min(1, queue.length) : queue.length;
     queue.splice(position, 0, item);
-    return { ...p, queue };
+    return { ...p, queue, lastActiveAt: Date.now() };
   });
   if (!result.committed || !result.snapshot.exists()) throw new Error("找不到這個派對");
   return { item, position };
@@ -83,7 +126,7 @@ export async function finishSong(code, songId, { result = "done", by = "", notic
     const [done] = queue.splice(0, 1);
     const history = [...toList(p.history), { ...done, result, endedAt: Date.now(), ...(by ? { endedBy: by } : {}) }]
       .slice(-HISTORY_MAX);
-    const next = { ...p, queue, history, paused: false };
+    const next = { ...p, queue, history, paused: false, lastActiveAt: Date.now() };
     if (notice) next.notice = { text: notice.replace("{title}", done.title), at: Date.now() };
     return next;
   });
@@ -100,7 +143,7 @@ export async function moveToNext(code, songId) {
     const i = queue.findIndex((s) => s.id === songId);
     if (i < 2) return; // 不在清單裡,或已經是正在播放/下一首
     queue.splice(1, 0, ...queue.splice(i, 1));
-    return { ...p, queue };
+    return { ...p, queue, lastActiveAt: Date.now() };
   });
 }
 
@@ -112,7 +155,7 @@ export async function removeSong(code, songId, by) {
     const i = queue.findIndex((s) => s.id === songId);
     if (i < 1) return;
     const [done] = queue.splice(i, 1);
-    return { ...p, queue, notice: { text: `${by} 刪除了「${done.title}」`, at: Date.now() } };
+    return { ...p, queue, lastActiveAt: Date.now(), notice: { text: `${by} 刪除了「${done.title}」`, at: Date.now() } };
   });
 }
 

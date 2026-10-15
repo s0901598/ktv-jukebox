@@ -87,6 +87,8 @@ input[type="text"], input[type="tel"], input[type="url"], input[type="search"] {
 }
 input:focus { outline: none; border-color: var(--accent); }
 input.code-input { font-size: 32px; letter-spacing: 0.4em; text-align: center; }
+input.invalid, input.invalid:focus { border-color: var(--danger); }
+.field-msg { margin-top: 6px; color: var(--danger); }
 
 .btn {
   display: block;

@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>點歌 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610132200">
+  <link rel="stylesheet" href="css/style.css?v=202610151500">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -133,15 +133,17 @@
   <script type="module">
     import {
       subscribe, addSong, skipSong, moveToNext, removeSong, setPaused,
-      parseYouTubeId, fetchTitle, escapeHtml,
+      parseYouTubeId, fetchTitle, escapeHtml, toList, CODE_RE, watchExpiry,
     } from "./js/party.js";
     import { searchSongs, youtubeSearchUrl, QuotaExceededError } from "./js/youtube.js";
     import { searchLibrary, filterLibrary, loadLibrary, collect, displayTitle, guessArtist } from "./js/library.js";
 
     const $ = (id) => document.getElementById(id);
     const code = new URLSearchParams(location.search).get("code") || "";
-    const name = localStorage.getItem("ktv-name");
-    if (!/^[0-9]{4}$/.test(code) || !name) location.replace(`./?code=${code}`);
+    const name = (localStorage.getItem("ktv-name") || "").trim();
+    // 代碼不對就回首頁;沒有暱稱就回首頁並提示輸入暱稱
+    if (!CODE_RE.test(code)) location.replace("./");
+    else if (!name) location.replace(`./?code=${code}&need=name`);
 
     $("code-label").textContent = code;
     $("name-label").textContent = name;
@@ -220,8 +222,11 @@
         </div>` : ""}
       </li>`;
 
+    const checkExpiry = watchExpiry(code, () => party);
+
     subscribe(code, (p) => {
       party = p;
+      checkExpiry(p);
       if (!p) {
         $("now").innerHTML = `<li class="empty">派對已結束</li>`;
         $("queue").innerHTML = "";
@@ -259,14 +264,28 @@
       if (confirm(`確定要切掉「${current.title}」嗎?`)) skipSong(code, current.id, name);
     });
 
-    $("queue").addEventListener("click", (e) => {
+    $("queue").addEventListener("click", async (e) => {
       const btn = e.target.closest("button[data-act]");
       if (!btn) return;
       const song = party?.queue.find((s) => s.id === btn.dataset.id);
       if (!song) return;
       if (btn.dataset.act === "next") {
-        moveToNext(code, song.id);
-        toast(`「${song.title}」插播到下一首`);
+        // 等資料庫回覆再顯示結果;別人先刪掉或已經是下一首時,插播不會生效
+        btn.disabled = true;
+        try {
+          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 10000));
+          const r = await Promise.race([moveToNext(code, song.id), timeout]);
+          if (r.committed) {
+            toast(`「${song.title}」已插播到下一首`);
+          } else {
+            const stillThere = toList(r.snapshot.val()?.queue).some((s) => s.id === song.id);
+            toast(stillThere ? "這首歌已經排在下一首了" : "這首歌已被刪除,插播沒有生效");
+          }
+        } catch (_) {
+          toast("插播失敗,請再試一次");
+        } finally {
+          btn.disabled = false;
+        }
       } else if (confirm(`確定要刪除「${song.title}」嗎?`)) {
         removeSong(code, song.id, name);
       }
