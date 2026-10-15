@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KTV點唱機">
   <meta name="theme-color" content="#d93c45">
   <title>大螢幕 - KTV 點唱機</title>
-  <link rel="stylesheet" href="css/style.css?v=202610151800">
+  <link rel="stylesheet" href="css/style.css?v=202610151900">
   <script>
     // 從 LINE 點開時:先試著直接打開 Chrome(播放端要用 Chrome,YouTube Premium 才會生效);
     // 沒裝 Chrome(1.5 秒內沒跳走)就改用外部瀏覽器(LINE 看到 openExternalBrowser=1 會跳到預設瀏覽器)
@@ -72,7 +72,14 @@
         <div class="now" id="now"></div>
       </div>
       <div style="display:flex;flex-direction:column;flex:1;min-height:0">
-        <h3>接下來</h3>
+        <div class="queue-head">
+          <h3>接下來</h3>
+          <div class="side-pager" id="side-pager" hidden>
+            <button type="button" id="side-prev" aria-label="上一頁">‹</button>
+            <span id="side-page"></span>
+            <button type="button" id="side-next" aria-label="下一頁">›</button>
+          </div>
+        </div>
         <ul class="queue" id="queue"></ul>
       </div>
       <div class="status" id="status"></div>
@@ -132,7 +139,14 @@
       const safeX = parseFloat(getComputedStyle($("safe-probe")).paddingLeft) || 0;
       const u = Math.max(1, Math.min((w - safeX * 2) / 100, h / 56.25));
       $("stage").style.setProperty("--u", `${u}px`);
+      fitSideQueue();
       scrollTo(0, 0);
+    }
+    // 「接下來」一頁 8 首放不下時(手機橫拿、歌名很長),縮小每首之間的間距,字的大小不變
+    function fitSideQueue() {
+      const ul = $("queue");
+      ul.classList.remove("tight");
+      if (ul.scrollHeight > ul.clientHeight + 1) ul.classList.add("tight");
     }
     fitStage();
     addEventListener("resize", fitStage);
@@ -403,6 +417,26 @@
       player?.stopVideo?.();
     });
 
+    // ---------- 右側「接下來」:一頁 8 首,清單更新時停在原本那頁 ----------
+    const SIDE_PAGE_SIZE = 8;
+    let sidePage = 0;
+    function renderSideQueue() {
+      const rest = party?.queue.slice(1) || [];
+      const count = Math.max(1, Math.ceil(rest.length / SIDE_PAGE_SIZE));
+      sidePage = Math.min(sidePage, count - 1);
+      const start = sidePage * SIDE_PAGE_SIZE;
+      $("queue").innerHTML = rest.length
+        ? rest.slice(start, start + SIDE_PAGE_SIZE).map((s, i) => `<li><span class="num">${start + i + 1}</span>${escapeHtml(s.title)} <span class="by">· ${escapeHtml(s.by)}</span></li>`).join("")
+        : `<li class="by">清單是空的</li>`;
+      $("side-pager").hidden = count <= 1;
+      $("side-page").textContent = `${sidePage + 1} / ${count}`;
+      $("side-prev").disabled = sidePage === 0;
+      $("side-next").disabled = sidePage === count - 1;
+      fitSideQueue();
+    }
+    $("side-prev").addEventListener("click", () => { sidePage--; renderSideQueue(); });
+    $("side-next").addEventListener("click", () => { sidePage++; renderSideQueue(); });
+
     // ---------- 畫面 ----------
     subscribe(code, (p) => {
       party = p;
@@ -419,11 +453,9 @@
       }
       const [current, ...rest] = p.queue;
       $("now").innerHTML = current
-        ? `${escapeHtml(current.title)}<div class="by">${escapeHtml(current.by)} 點的</div>`
+        ? `<div class="now-title">${escapeHtml(current.title)}</div><div class="by">${escapeHtml(current.by)} 點的</div>`
         : `<span class="by">還沒有人點歌</span>`;
-      $("queue").innerHTML = rest.length
-        ? rest.map((s, i) => `<li><span class="num">${i + 1}</span>${escapeHtml(s.title)} <span class="by">· ${escapeHtml(s.by)}</span></li>`).join("")
-        : `<li class="by">清單是空的</li>`;
+      renderSideQueue();
       showNotice(p.notice);
       $("paused").hidden = !(p.paused && current);
       $("skip-btn").hidden = !current;
