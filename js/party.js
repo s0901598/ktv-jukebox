@@ -90,6 +90,13 @@ export function watchExpiry(code, getParty, beforeLeave = () => {}) {
   return check;
 }
 
+// 改派對資料的交易:先確定派對資料已載入再跑。資料還沒載入時交易會先在手機上把派對當成空的,
+// 畫面會誤以為「派對已結束」;已載入過就直接用手機上的資料,不會多等。
+async function partyTx(code, update) {
+  await get(partyRef(code));
+  return runTransaction(partyRef(code), update);
+}
+
 export function subscribe(code, callback) {
   return onValue(partyRef(code), (snap) => {
     const p = snap.val();
@@ -102,7 +109,7 @@ export function subscribe(code, callback) {
 export async function addSong(code, song, { next = false } = {}) {
   const item = { ...song, id: newId(), addedAt: Date.now() };
   let position = 0;
-  const result = await runTransaction(partyRef(code), (p) => {
+  const result = await partyTx(code, (p) => {
     if (!p) return p; // 尚未從伺服器載入,Firebase 會用最新資料重跑
     const queue = toList(p.queue);
     position = next ? Math.min(1, queue.length) : queue.length;
@@ -119,7 +126,7 @@ export async function addSong(code, song, { next = false } = {}) {
 // result:done = 唱完,skipped = 被切掉,unplayable = 無法播放
 const HISTORY_MAX = 300;
 export async function finishSong(code, songId, { result = "done", by = "", notice = "" } = {}) {
-  return runTransaction(partyRef(code), (p) => {
+  return partyTx(code, (p) => {
     if (!p) return p;
     const queue = toList(p.queue);
     if (queue[0]?.id !== songId) return; // 已經換過了,不動
@@ -137,7 +144,7 @@ export const skipSong = (code, songId, by) =>
 
 // 已在排隊的歌插播到下一首
 export async function moveToNext(code, songId) {
-  return runTransaction(partyRef(code), (p) => {
+  return partyTx(code, (p) => {
     if (!p) return p;
     const queue = toList(p.queue);
     const i = queue.findIndex((s) => s.id === songId);
@@ -149,7 +156,7 @@ export async function moveToNext(code, songId) {
 
 // 刪除清單中的歌(正在播放的那首請用 skipSong)
 export async function removeSong(code, songId, by) {
-  return runTransaction(partyRef(code), (p) => {
+  return partyTx(code, (p) => {
     if (!p) return p;
     const queue = toList(p.queue);
     const i = queue.findIndex((s) => s.id === songId);
@@ -165,7 +172,7 @@ export function endParty(code) {
 }
 
 export async function setPaused(code, paused) {
-  return runTransaction(partyRef(code), (p) => {
+  return partyTx(code, (p) => {
     if (!p) return p;
     if (!toList(p.queue).length || !!p.paused === paused) return;
     return { ...p, paused };
